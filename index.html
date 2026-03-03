@@ -6,7 +6,7 @@
     <title>REAL GPS - OFICIAL</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { --neon-green: #00ff88; --neon-blue: #001eff; }
+        :root { --neon-green: #00ff88; --neon-blue: #001eff; --neon-red: #ff0044; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body, html { height: 100%; font-family: sans-serif; overflow: hidden; background: #000; }
 
@@ -15,11 +15,10 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #000; z-index: 5000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .logo-app {
-            width: 220px; height: 220px; border-radius: 45px;
+            width: 200px; height: 200px; border-radius: 45px;
             background-image: url('https://i.ibb.co/d0KVj1SJ/Gemini-Generated-Image-dmy11dmy11dmy11d.png'); 
             background-size: cover; background-position: center;
             box-shadow: 0 0 25px var(--neon-green); margin-bottom: 15px;
@@ -31,12 +30,17 @@
             text-shadow: 0 0 10px var(--neon-green); margin-bottom: 25px;
         }
 
-        .container-login { width: 90%; max-width: 350px; text-align: center; }
-
         .input-login {
             width: 100%; padding: 15px; border-radius: 30px; border: 2px solid var(--neon-green);
             background: rgba(255,255,255,0.1); color: #fff; font-size: 1.2rem; text-align: center;
-            margin-bottom: 20px; outline: none;
+            margin-bottom: 10px; outline: none; transition: 0.3s;
+        }
+
+        /* MENSAGEM DE ERRO LED */
+        #msgErro {
+            color: var(--neon-red); font-weight: bold; font-size: 0.9rem;
+            margin-bottom: 15px; text-shadow: 0 0 5px var(--neon-red);
+            display: none;
         }
 
         .btn-entrar {
@@ -57,28 +61,34 @@
         .header-status {
             position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
             z-index: 100; background: rgba(0,0,0,0.85); color: var(--neon-green);
-            padding: 10px 30px; border-radius: 30px; border: 2px solid var(--neon-green);
-            font-weight: bold; font-size: 0.9rem; white-space: nowrap;
+            padding: 10px 20px; border-radius: 30px; border: 2px solid var(--neon-green);
+            font-weight: bold; font-size: 0.8rem; white-space: nowrap;
         }
 
-        .container-busca {
-            position: absolute; top: 80px; left: 20px; z-index: 100;
-            display: flex; align-items: center; width: calc(100% - 100px); max-width: 300px;
+        /* ABA LED SETTINGS */
+        .aba-led-settings { position: absolute; top: 15px; right: 15px; z-index: 200; }
+        .btn-led {
+            width: 45px; height: 45px; background: #000; border: 2px solid var(--neon-blue);
+            border-radius: 12px; color: var(--neon-blue); display: flex; align-items: center;
+            justify-content: center; font-size: 20px; cursor: pointer;
+            box-shadow: 0 0 10px var(--neon-blue);
         }
-        .input-busca {
-            width: 100%; padding: 12px 20px; border-radius: 25px; border: 2px solid var(--neon-blue);
-            background: rgba(255,255,255,0.9); font-weight: bold; outline: none;
+        .menu-led {
+            display: none; position: absolute; top: 55px; right: 0; 
+            background: rgba(0,0,0,0.95); border: 2px solid var(--neon-red);
+            padding: 15px; border-radius: 15px; box-shadow: 0 0 20px var(--neon-red);
+            width: 180px; text-align: center;
         }
-        .btn-busca { margin-left: -45px; background: none; border: none; font-size: 20px; cursor: pointer; }
 
+        /* BOTÃO DE MARCAÇÃO FIXO */
         .btn-marcar-local {
-            position: absolute; right: 20px; top: 80px; z-index: 100;
-            width: 55px; height: 55px; background: #fff; border-radius: 50%;
+            position: absolute; right: 25px; bottom: 100px; z-index: 100;
+            width: 70px; height: 70px; background: var(--neon-blue); border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 25px; cursor: pointer; border: 3px solid var(--neon-blue);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            font-size: 35px; cursor: pointer; border: 4px solid #fff;
+            box-shadow: 0 0 20px rgba(0, 30, 255, 0.6);
         }
-        .btn-marcar-local.ativo { background: var(--neon-green); }
+        .btn-marcar-local.ativo { background: var(--neon-green); box-shadow: 0 0 25px var(--neon-green); }
 
         /* ABA AMIGOS */
         .aba-amigos {
@@ -92,19 +102,6 @@
             background: var(--neon-blue); color: white; padding: 12px 35px;
             border-radius: 20px 20px 0 0; font-weight: bold; cursor: pointer;
         }
-
-        .item-amigo {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 15px; background: #f0f4f8; margin-bottom: 10px;
-            border-radius: 12px; border-left: 6px solid var(--neon-blue);
-            cursor: pointer;
-        }
-
-        .popup-remover {
-            background: #ff4444; color: white; border: none; padding: 8px;
-            border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%;
-            margin-top: 10px;
-        }
     </style>
 </head>
 <body>
@@ -112,32 +109,34 @@
     <div id="telaLogin">
         <div class="logo-app"></div>
         <div class="titulo-app">REAL GPS</div>
-        <div class="container-login">
-            <input type="text" id="idInput" class="input-login" placeholder="DIGITE SEU NOME" maxlength="20">
-            <div class="btn-entrar" onclick="fazerLogin()">🚀</div>
+        <div class="container-login" style="width: 85%; max-width: 320px; text-align: center;">
+            <div id="msgErro">⚠️ Usuário já cadastrado</div>
+            <input type="text" id="idInput" class="input-login" placeholder="DIGITE SEU ID/NOME" maxlength="20">
+            <p style="color: #666; font-size: 0.7rem; margin-bottom: 15px;">🔒 CHAVE DE SEGURANÇA ATIVA</p>
+            <div class="btn-entrar" onclick="verificarERegistrar()">🚀</div>
         </div>
     </div>
 
     <div id="interfacePrincipal">
         <div class="header-status" id="statusTopo">REAL GPS: ONLINE</div>
-        
-        <div class="container-busca">
-            <input type="text" id="inputBusca" class="input-busca" placeholder="Pesquisar local...">
-            <button class="btn-busca" onclick="pesquisarLocal()">🔍</button>
+
+        <div class="aba-led-settings">
+            <div class="btn-led" onclick="toggleMenuLed()">⚙️</div>
+            <div id="menuLed" class="menu-led">
+                <button style="background:none; border:1px solid red; color:red; padding:8px; cursor:pointer; width:100%;" onclick="excluirConta()">Excluir Conta</button>
+            </div>
         </div>
-
+        
         <div id="btnMarcar" class="btn-marcar-local" onclick="toggleModoMarcacao()">📍</div>
-
         <div id="map"></div>
 
         <div id="abaAmigos" class="aba-amigos">
             <div class="gatilho-aba" onclick="toggleAba()">LISTA DE AMIGOS</div>
             <div style="text-align: center;">
-                <input type="text" id="idAmigoInput" style="width:80%; padding:12px; border:2px solid var(--neon-blue); border-radius:15px; text-align:center;" placeholder="NOME DO AMIGO" maxlength="20">
-                <br>
-                <button onclick="adicionarAmigo()" style="background:var(--neon-blue); color:white; border:none; padding:12px 40px; border-radius:15px; margin-top:15px; cursor:pointer; font-weight:bold; width:80%;">SALVAR NO SISTEMA</button>
+                <input type="text" id="idAmigoInput" style="width:80%; padding:12px; border:2px solid var(--neon-blue); border-radius:15px;" placeholder="NOME DO AMIGO">
+                <button onclick="adicionarAmigo()" style="background:var(--neon-blue); color:white; padding:12px; border-radius:15px; margin-top:10px; width:80%; border:none;">SALVAR AMIGO</button>
             </div>
-            <div id="listaCorpo" style="margin-top:20px; height:220px; overflow-y:auto;"></div>
+            <div id="listaCorpo" style="margin-top:20px; height:200px; overflow-y:auto;"></div>
         </div>
     </div>
 
@@ -145,9 +144,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue, get, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // CONFIGURAÇÕES CONFERIDAS DO SEU PROJETO
         const firebaseConfig = {
             apiKey: "AIzaSyBFO0CMhfRLqgCjoDk1zDD5VmIi9EtOLTY",
             authDomain: "real-gps-ed315.firebaseapp.com",
@@ -168,11 +166,44 @@
         const marcadoresAmigos = {};
         let modoMarcacao = false;
 
-        window.fazerLogin = function() {
+        // FUNÇÃO DE SEGURANÇA: Bloqueia IDs duplicados
+        window.verificarERegistrar = async function() {
             const id = document.getElementById('idInput').value.trim();
+            const erroDiv = document.getElementById('msgErro');
+            
             if(id.length < 3) return;
+
+            // Verifica se este ID já existe no banco de dados
+            const snapshot = await get(ref(db, 'usuarios/' + id));
+            
+            if (snapshot.exists()) {
+                // Se o ID existe, mas não é o que está salvo neste navegador, bloqueia.
+                const idLocal = localStorage.getItem('REALGPS_ID');
+                if(idLocal !== id) {
+                    erroDiv.style.display = 'block';
+                    document.getElementById('idInput').style.borderColor = 'var(--neon-red)';
+                    return;
+                }
+            }
+
+            // Se passou no teste, loga e salva no navegador (Lock)
+            erroDiv.style.display = 'none';
             localStorage.setItem('REALGPS_ID', id);
             entrarNoApp(id);
+        };
+
+        window.toggleMenuLed = () => {
+            const menu = document.getElementById('menuLed');
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        };
+
+        window.excluirConta = async function() {
+            const id = localStorage.getItem('REALGPS_ID');
+            if(confirm("Excluir conta permanentemente?")) {
+                await remove(ref(db, 'usuarios/' + id));
+                localStorage.clear();
+                location.reload();
+            }
         };
 
         window.adicionarAmigo = () => {
@@ -193,12 +224,9 @@
             corpo.innerHTML = "";
             amigos.forEach(id => {
                 const div = document.createElement('div');
-                div.className = "item-amigo";
+                div.style = "display:flex; justify-content:space-between; padding:10px; background:#f0f0f0; margin-bottom:5px; border-radius:10px;";
+                div.innerHTML = `<b>${id}</b> <span onclick="window.removerAmigo('${id}')" style="color:red; cursor:pointer;">✖</span>`;
                 div.onclick = () => window.focarAmigo(id);
-                div.innerHTML = `
-                    <div style="flex-grow:1;"><b>📍 ${id}</b><br><small style="color:var(--neon-blue)">Toque para localizar</small></div>
-                    <span onclick="event.stopPropagation(); window.removerAmigo('${id}')" style="color:red; font-weight:bold; padding:10px;">✖</span>
-                `;
                 corpo.appendChild(div);
             });
         };
@@ -206,26 +234,8 @@
         window.removerAmigo = (id) => {
             let amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]").filter(a => a !== id);
             localStorage.setItem('LISTA_AMIGOS', JSON.stringify(amigos));
-            if(marcadoresAmigos[id]) { map.removeLayer(marcadoresAmigos[id]); delete marcadoresAmigos[id]; }
+            if(marcadoresAmigos[id]) map.removeLayer(marcadoresAmigos[id]);
             window.renderLista();
-        };
-
-        window.focarAmigo = async function(id) {
-            const snapshot = await get(ref(db, 'usuarios/' + id));
-            const dados = snapshot.val();
-            if (dados && dados.lat) {
-                map.flyTo([dados.lat, dados.lng], 16);
-                if (marcadoresAmigos[id]) marcadoresAmigos[id].openPopup();
-                if (document.getElementById('abaAmigos').classList.contains('aberta')) window.toggleAba();
-            } else { alert("Amigo offline ou não localizado."); }
-        };
-
-        window.pesquisarLocal = async function() {
-            const q = document.getElementById('inputBusca').value;
-            if(!q) return;
-            const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`);
-            const d = await r.json();
-            if(d.length) map.flyTo([d[0].lat, d[0].lon], 16);
         };
 
         window.toggleModoMarcacao = () => { 
@@ -250,7 +260,7 @@
                 const { latitude, longitude } = p.coords;
                 set(ref(db, 'usuarios/' + meuId), { lat: latitude, lng: longitude, visto: Date.now() });
                 if (!window.meuMarcador) {
-                    window.meuMarcador = L.circleMarker([latitude, longitude], {radius: 12, fillColor: "#00ff88", color: "#fff", weight: 3}).addTo(map).bindPopup("Você");
+                    window.meuMarcador = L.circleMarker([latitude, longitude], {radius: 12, fillColor: "#00ff88", color: "#fff", weight: 3}).addTo(map);
                     map.setView([latitude, longitude], 15);
                 } else {
                     window.meuMarcador.setLatLng([latitude, longitude]);
@@ -264,27 +274,15 @@
                 onValue(ref(db, 'usuarios/' + id), (s) => {
                     const d = s.val();
                     if (d && d.lat) {
-                        if (marcadoresAmigos[id]) {
-                            marcadoresAmigos[id].setLatLng([d.lat, d.lng]);
+                        if (!marcadoresAmigos[id]) {
+                            marcadoresAmigos[id] = L.circleMarker([d.lat, d.lng], {radius: 10, fillColor: "#001eff", color: "#fff", weight: 2}).addTo(map);
                         } else {
-                            marcadoresAmigos[id] = L.circleMarker([d.lat, d.lng], {radius: 10, fillColor: "#001eff", color: "#fff", weight: 2}).addTo(map).bindPopup("Amigo: "+id);
+                            marcadoresAmigos[id].setLatLng([d.lat, d.lng]);
                         }
                     }
                 });
             });
         }
-
-        map.on('click', (e) => { 
-            if(modoMarcacao) { 
-                const marcadorPonto = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
-                const btnRemover = document.createElement('button');
-                btnRemover.innerText = "REMOVER PONTO";
-                btnRemover.className = "popup-remover";
-                btnRemover.onclick = () => map.removeLayer(marcadorPonto);
-                marcadorPonto.bindPopup(btnRemover).openPopup();
-                window.toggleModoMarcacao(); 
-            } 
-        });
 
         window.onload = () => {
             const idSalvo = localStorage.getItem('REALGPS_ID');

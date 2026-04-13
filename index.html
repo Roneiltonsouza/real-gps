@@ -43,9 +43,10 @@
         .aba-amigos.aberta { bottom: 0; }
         .gatilho-aba { position: absolute; top: -45px; left: 50%; transform: translateX(-50%); background: var(--neon-blue); color: #fff; padding: 12px 35px; border-radius: 20px 20px 0 0; font-weight: bold; }
         .card-amigo { background: #222; margin-bottom: 15px; border-radius: 15px; padding: 15px; border: 1px solid #333; }
-        .btn-rota-linha { width: 75%; height: 40px; background: var(--neon-blue); border-radius: 10px 0 0 10px; color: #fff; font-weight: bold; border: none; }
-        .btn-ligar-amigo { width: 25%; height: 40px; background: var(--neon-green); border-radius: 0 10px 10px 0; color: #000; font-size: 1.2rem; border: none; }
+        .btn-rota-linha { width: 75%; height: 40px; background: var(--neon-blue); border-radius: 10px 0 0 10px; color: #fff; font-weight: bold; border: none; cursor: pointer; }
+        .btn-ligar-amigo { width: 25%; height: 40px; background: var(--neon-green); border-radius: 0 10px 10px 0; color: #000; font-size: 1.2rem; border: none; cursor: pointer; }
 
+        /* INSTRUÇÕES E ROTA */
         #painelInstrucao { position: absolute; top: 75px; left: 15px; right: 15px; background: rgba(0,0,0,0.95); color: #fff; padding: 15px; border-radius: 15px; border-left: 6px solid var(--neon-blue); z-index: 1001; font-weight: bold; display: none; }
         .btn-limpar-rota { position: absolute; bottom: 420px; right: 20px; z-index: 1001; background: var(--neon-red); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; display: none; }
         .leaflet-routing-container { display: none !important; }
@@ -133,11 +134,32 @@
         let minhaPos = null;
         let controleRota = null;
         let listaInstrucoes = [];
+        let ultimaInstrucaoFalada = "";
         let localStream = null;
         let pc = null;
         const marcadoresAmigos = {};
 
-        // --- SISTEMA DE ADMIN (EXCLUIR QUALQUER ID) ---
+        // --- LÓGICA DE VOZ E ENDEREÇO (RESTAURADO) ---
+        function falar(texto) {
+            if (!texto || texto === ultimaInstrucaoFalada) return;
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(texto.replace(/[0-9]/g, '').replace(/[\.,-]/g, ' '));
+            msg.lang = 'pt-BR';
+            window.speechSynthesis.speak(msg);
+            ultimaInstrucaoFalada = texto;
+            document.getElementById('painelInstrucao').innerText = texto;
+            document.getElementById('painelInstrucao').style.display = "block";
+        }
+
+        async function getEnderecoAmigo(lat, lng) {
+            try {
+                const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                const d = await r.json();
+                return d.address.road || d.address.suburb || "Local próximo";
+            } catch (e) { return "Localização do amigo"; }
+        }
+
+        // --- ADMIN ---
         window.abrirAdmin = () => {
             if(prompt("SENHA MESTRE:") === "netchaveapi") {
                 document.getElementById('painelAdmin').style.display = "flex";
@@ -155,11 +177,13 @@
         };
         window.deletarID = (id) => { if(confirm("Excluir permanentemente "+id+"?")) remove(ref(db, `usuarios/${id}`)); };
 
-        // --- WEBRTC (CÂMERA) ---
+        // --- CÂMERA WEBRTC ---
         async function iniciarMidia() {
-            localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
-            document.getElementById('videoLocal').srcObject = localStream;
-            document.getElementById('containerCamera').style.display = "block";
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+                document.getElementById('videoLocal').srcObject = localStream;
+                document.getElementById('containerCamera').style.display = "block";
+            } catch (e) { alert("Erro ao acessar câmera."); }
         }
 
         window.ligarParaAmigo = async (idAmigo) => {
@@ -195,45 +219,23 @@
             document.getElementById('notificacaoChamada').style.display = "none";
         };
 
-        // --- LOGIN E RASTREAMENTO ---
-        window.tentarLogin = async function() {
-            const id = document.getElementById('idInput').value.trim();
-            if(!id) return;
-            const snap = await get(ref(db, 'usuarios/' + id));
-            const idLocal = localStorage.getItem('REALGPS_ID');
-
-            if (snap.exists() && idLocal !== id) {
-                document.getElementById('msgErro').style.display = "block";
-                return;
-            }
-
-            meuId = id;
-            localStorage.setItem('REALGPS_ID', id);
-            document.getElementById('meuIdDisplay').innerText = id;
-            document.getElementById('telaLogin').style.display = "none";
-            document.getElementById('interfacePrincipal').style.display = "block";
-            
-            map.invalidateSize();
-            monitorarChamadas();
-            iniciarRastreamento();
-            monitorarAmigos();
-        };
-
-        function monitorarChamadas() {
-            onValue(ref(db, `chamadas/${meuId}`), async snap => {
-                const data = snap.val();
-                if(data && data.status === "tocando") {
-                    document.getElementById('textoChamada').innerText = data.de + " LIGANDO...";
-                    document.getElementById('notificacaoChamada').style.display = "flex";
-                    window.chamadaAtiva = data;
-                }
-            });
-        }
-
+        // --- RASTREAMENTO E VOZ ---
         function iniciarRastreamento() {
             navigator.geolocation.watchPosition((p) => {
                 const { latitude, longitude } = p.coords;
                 minhaPos = { lat: latitude, lng: longitude };
+                
+                // Monitoramento de passos da rota para falar
+                if (listaInstrucoes.length > 0 && controleRota && controleRota._router.route) {
+                    const rotaCoords = controleRota._router.route[0].coordinates;
+                    listaInstrucoes.forEach(inst => {
+                        const stepCoord = rotaCoords[inst.index];
+                        if (map.distance([latitude, longitude], [stepCoord.lat, stepCoord.lng]) < 40) {
+                            falar(inst.text);
+                        }
+                    });
+                }
+
                 set(ref(db, 'usuarios/' + meuId), { lat: latitude, lng: longitude, visto: Date.now() });
                 if (!window.meuMarcador) {
                     window.meuMarcador = L.circleMarker([latitude, longitude], {radius: 12, fillColor: "#00ff88", color: "#fff", weight: 3}).addTo(map);
@@ -252,7 +254,7 @@
             amigos.forEach(id => {
                 const card = document.createElement('div');
                 card.className = "card-amigo";
-                card.innerHTML = `<div style="color:white; font-weight:bold; display:flex; justify-content:space-between">👤 ${id} <span onclick="removerAmigo('${id}')" style="color:red">✖</span></div>
+                card.innerHTML = `<div style="color:white; font-weight:bold; display:flex; justify-content:space-between">👤 ${id} <span onclick="removerAmigo('${id}')" style="color:red; cursor:pointer">✖</span></div>
                                   <div style="display:flex; margin-top:10px;">
                                     <button class="btn-rota-linha" onclick="acionarRota('${id}')">ROTA ➔</button>
                                     <button class="btn-ligar-amigo" onclick="ligarParaAmigo('${id}')">📞</button>
@@ -268,19 +270,74 @@
             });
         };
 
-        window.acionarRota = (id) => {
-            get(ref(db, 'usuarios/' + id)).then(s => {
-                if(s.val()) {
-                    if (controleRota) map.removeControl(controleRota);
-                    controleRota = L.Routing.control({
-                        waypoints: [L.latLng(minhaPos.lat, minhaPos.lng), L.latLng(s.val().lat, s.val().lng)],
-                        lineOptions: { styles: [{ color: '#001eff', weight: 8, opacity: 0.9 }] },
-                        createMarker: () => null
-                    }).addTo(map);
-                    document.getElementById('btnLimpar').style.display = "block";
-                    toggleAba();
+        window.acionarRota = async (id) => {
+            const s = await get(ref(db, 'usuarios/' + id));
+            if(s.exists() && s.val().lat) {
+                const rua = await getEnderecoAmigo(s.val().lat, s.val().lng);
+                falar(`Gerando rota para ${id}. Localizado em ${rua}.`);
+                
+                if (controleRota) map.removeControl(controleRota);
+                controleRota = L.Routing.control({
+                    waypoints: [L.latLng(minhaPos.lat, minhaPos.lng), L.latLng(s.val().lat, s.val().lng)],
+                    lineOptions: { styles: [{ color: '#001eff', weight: 8, opacity: 0.9 }] },
+                    createMarker: () => null,
+                    addWaypoints: false
+                }).on('routesfound', e => { 
+                    listaInstrucoes = e.routes[0].instructions; 
+                }).addTo(map);
+
+                document.getElementById('btnLimpar').style.display = "block";
+                toggleAba();
+            }
+        };
+
+        window.limparRota = () => {
+            if (controleRota) map.removeControl(controleRota);
+            document.getElementById('btnLimpar').style.display = "none";
+            document.getElementById('painelInstrucao').style.display = "none";
+            listaInstrucoes = [];
+            falar("Rota finalizada.");
+        };
+
+        // --- LOGIN E START ---
+        window.tentarLogin = async function() {
+            const id = document.getElementById('idInput').value.trim();
+            if(!id) return;
+            const snap = await get(ref(db, 'usuarios/' + id));
+            const idLocal = localStorage.getItem('REALGPS_ID');
+            if (snap.exists() && idLocal !== id) {
+                document.getElementById('msgErro').style.display = "block";
+                falar("Acesso negado.");
+                return;
+            }
+            meuId = id;
+            localStorage.setItem('REALGPS_ID', id);
+            document.getElementById('meuIdDisplay').innerText = id;
+            document.getElementById('telaLogin').style.display = "none";
+            document.getElementById('interfacePrincipal').style.display = "block";
+            falar("Real GPS ativo.");
+            map.invalidateSize();
+            iniciarRastreamento();
+            monitorarAmigos();
+            monitorarChamadas();
+        };
+
+        function monitorarChamadas() {
+            onValue(ref(db, `chamadas/${meuId}`), snap => {
+                const data = snap.val();
+                if(data && data.status === "tocando") {
+                    document.getElementById('textoChamada').innerText = data.de + " LIGANDO...";
+                    document.getElementById('notificacaoChamada').style.display = "flex";
+                    window.chamadaAtiva = data;
                 }
             });
+        }
+
+        window.adicionarAmigo = () => {
+            const id = document.getElementById('idAmigoInput').value.trim();
+            let lista = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]");
+            if(id && !lista.includes(id)) { lista.push(id); localStorage.setItem('LISTA_AMIGOS', JSON.stringify(lista)); monitorarAmigos(); }
+            document.getElementById('idAmigoInput').value = "";
         };
 
         window.removerAmigo = (id) => {
@@ -290,19 +347,8 @@
             monitorarAmigos();
         };
 
-        window.adicionarAmigo = () => {
-            const id = document.getElementById('idAmigoInput').value.trim();
-            let lista = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]");
-            if(id && !lista.includes(id)) { lista.push(id); localStorage.setItem('LISTA_AMIGOS', JSON.stringify(lista)); monitorarAmigos(); }
-        };
-
-        window.limparRota = () => {
-            if (controleRota) map.removeControl(controleRota);
-            document.getElementById('btnLimpar').style.display = "none";
-        };
-
         window.excluirConta = async function() {
-            if(confirm("Apagar seu registro e liberar o nome?")){
+            if(confirm("Apagar registro?")){
                 await remove(ref(db, 'usuarios/' + meuId));
                 localStorage.clear();
                 window.location.reload();

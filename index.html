@@ -1,629 +1,305 @@
 <!DOCTYPE html>
-
 <html lang="pt-br">
-
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-    <title>REAL GPS - SEGURANÇA TOTAL 2026</title>
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-    <style>
-
-        :root { --neon-green: #00ff88; --neon-blue: #001eff; --neon-red: #ff0044; }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
-        html, body { height: 100%; width: 100%; overflow: hidden; background: #000; position: fixed; font-family: sans-serif; }
-
-
-        /* TELA DE LOGIN */
-
-        #telaLogin {
-
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-
-            background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;
-
-        }
-
-        .logo-app {
-
-            width: 120px; height: 120px; border-radius: 30px;
-
-            background: url('https://i.ibb.co/d0KVj1SJ/Gemini-Generated-Image-dmy11dmy11dmy11d.png') center/cover;
-
-            box-shadow: 0 0 20px var(--neon-green); border: 2px solid var(--neon-green); margin-bottom: 25px;
-
-        }
-
-        .input-login {
-
-            width: 80%; max-width: 280px; padding: 15px; border-radius: 25px; border: 2px solid var(--neon-green);
-
-            background: rgba(255,255,255,0.05); color: #fff; text-align: center; outline: none; font-size: 1.1rem;
-
-        }
-
-        #msgErro { color: var(--neon-red); font-weight: bold; margin: 15px; display: none; text-shadow: 0 0 10px red; text-align: center; width: 85%; }
-
-        .btn-entrar { width: 75px; height: 75px; background: var(--neon-blue); border: 4px solid #fff; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 35px; margin-top: 15px; box-shadow: 0 0 20px var(--neon-blue); }
-
-
-        /* INTERFACE */
-
-        #interfacePrincipal { display: none; width: 100vw; height: 100vh; position: absolute; }
-
-        #map { width: 100%; height: 100%; }
-
-
-        .btn-configs {
-
-            position: absolute; top: 15px; right: 15px; z-index: 1005;
-
-            background: rgba(0,0,0,0.8); color: white; width: 45px; height: 45px;
-
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-
-            font-size: 24px; border: 2px solid var(--neon-blue); cursor: pointer;
-
-        }
-
-
-        #menuConfigs {
-
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-
-            background: rgba(0,0,0,0.98); z-index: 3000; display: none;
-
-            flex-direction: column; align-items: center; justify-content: center; color: white;
-
-        }
-
-        .btn-excluir-conta { background: var(--neon-red); color: white; padding: 15px 20px; border: none; border-radius: 12px; font-weight: bold; margin-top: 20px; cursor: pointer; width: 250px; }
-
-        .btn-id-gps { background: var(--neon-blue); color: white; padding: 15px 20px; border: none; border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; width: 250px; }
-
-
-        /* PAINEL ADMIN ID GPS */
-
-        #painelAdmin {
-
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-
-            background: #000; z-index: 4000; display: none; flex-direction: column; padding: 20px; overflow-y: auto;
-
-        }
-
-        .item-usuario {
-
-            background: #111; padding: 15px; border-radius: 10px; border-left: 4px solid var(--neon-green);
-
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
-
-        }
-
-
-        #painelInstrucao {
-
-            position: absolute; top: 75px; left: 15px; right: 15px;
-
-            background: rgba(0,0,0,0.95); color: #fff; padding: 15px;
-
-            border-radius: 15px; border-left: 6px solid var(--neon-blue);
-
-            z-index: 1001; font-weight: bold; display: none;
-
-        }
-
-
-        .btn-limpar-rota {
-
-            position: absolute; bottom: 420px; right: 20px;
-
-            z-index: 1001; background: var(--neon-red); color: white; border: none;
-
-            padding: 12px; border-radius: 10px; font-weight: bold; display: none;
-
-        }
-
-
-        .aba-amigos {
-
-            position: fixed; bottom: -340px; left: 0; width: 100%; height: 380px;
-
-            background: #111; z-index: 2000; transition: 0.4s ease; border-radius: 30px 30px 0 0; padding: 20px;
-
-            border-top: 2px solid var(--neon-blue);
-
-        }
-
-        .aba-amigos.aberta { bottom: 0; }
-
-        .gatilho-aba {
-
-            position: absolute; top: -45px; left: 50%; transform: translateX(-50%);
-
-            background: var(--neon-blue); color: #fff; padding: 12px 35px; border-radius: 20px 20px 0 0; font-weight: bold;
-
-        }
-
-
-        .card-amigo { background: #222; margin-bottom: 15px; border-radius: 15px; padding: 15px; border: 1px solid #333; }
-
-        .btn-rota-linha { width: 100%; height: 40px; background: var(--neon-blue); margin-top: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.85rem; font-weight: bold; cursor: pointer; }
-
-
-        .leaflet-routing-container { display: none !important; }
-
-    </style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>REAL GPS - SEGURANÇA TOTAL 2026</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root { --neon-green: #00ff88; --neon-blue: #001eff; --neon-red: #ff0044; }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        html, body { height: 100%; width: 100%; overflow: hidden; background: #000; position: fixed; font-family: sans-serif; }
+
+        /* TELA DE LOGIN COM TRAVA DE DONO */
+        #telaLogin {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .logo-app {
+            width: 120px; height: 120px; border-radius: 30px;
+            background: url('https://i.ibb.co/d0KVj1SJ/Gemini-Generated-Image-dmy11dmy11dmy11d.png') center/cover;
+            box-shadow: 0 0 20px var(--neon-green); border: 2px solid var(--neon-green); margin-bottom: 25px;
+        }
+        .input-login {
+            width: 80%; max-width: 280px; padding: 15px; border-radius: 25px; border: 2px solid var(--neon-green);
+            background: rgba(255,255,255,0.05); color: #fff; text-align: center; outline: none; font-size: 1.1rem;
+        }
+        #msgErro { color: var(--neon-red); font-weight: bold; margin: 15px; display: none; text-shadow: 0 0 10px red; text-align: center; width: 85%; }
+        .btn-entrar { width: 75px; height: 75px; background: var(--neon-blue); border: 4px solid #fff; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 35px; margin-top: 15px; box-shadow: 0 0 20px var(--neon-blue); }
+
+        /* INTERFACE */
+        #interfacePrincipal { display: none; width: 100vw; height: 100vh; position: absolute; }
+        #map { width: 100%; height: 100%; }
+
+        .btn-configs {
+            position: absolute; top: 15px; right: 15px; z-index: 1005;
+            background: rgba(0,0,0,0.8); color: white; width: 45px; height: 45px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 24px; border: 2px solid var(--neon-blue); cursor: pointer;
+        }
+
+        #menuConfigs {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.98); z-index: 3000; display: none;
+            flex-direction: column; align-items: center; justify-content: center; color: white;
+        }
+        .btn-excluir-conta { background: var(--neon-red); color: white; padding: 15px 30px; border: none; border-radius: 15px; font-weight: bold; margin-top: 30px; cursor: pointer; }
+
+        #painelInstrucao {
+            position: absolute; top: 75px; left: 15px; right: 15px;
+            background: rgba(0,0,0,0.95); color: #fff; padding: 15px;
+            border-radius: 15px; border-left: 6px solid var(--neon-blue);
+            z-index: 1001; font-weight: bold; display: none;
+        }
+
+        .btn-limpar-rota {
+            position: absolute; bottom: 420px; right: 20px;
+            z-index: 1001; background: var(--neon-red); color: white; border: none;
+            padding: 12px; border-radius: 10px; font-weight: bold; display: none;
+        }
+
+        .aba-amigos {
+            position: fixed; bottom: -340px; left: 0; width: 100%; height: 380px;
+            background: #111; z-index: 2000; transition: 0.4s ease; border-radius: 30px 30px 0 0; padding: 20px;
+            border-top: 2px solid var(--neon-blue);
+        }
+        .aba-amigos.aberta { bottom: 0; }
+        .gatilho-aba {
+            position: absolute; top: -45px; left: 50%; transform: translateX(-50%);
+            background: var(--neon-blue); color: #fff; padding: 12px 35px; border-radius: 20px 20px 0 0; font-weight: bold;
+        }
+
+        .card-amigo { background: #222; margin-bottom: 15px; border-radius: 15px; padding: 15px; border: 1px solid #333; }
+        .btn-rota-linha { width: 100%; height: 40px; background: var(--neon-blue); margin-top: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.85rem; font-weight: bold; cursor: pointer; }
+
+        .leaflet-routing-container { display: none !important; }
+    </style>
 </head>
-
 <body>
 
-
-    <div id="telaLogin">
-
-        <div class="logo-app"></div>
-
-        <div id="msgErro">⚠️ ACESSO NEGADO: NOME PROTEGIDO</div>
-
-        <input type="text" id="idInput" class="input-login" placeholder="DIGITE SEU NOME">
-
-        <div class="btn-entrar" onclick="tentarLogin()">🚀</div>
-
-    </div>
-
-
-    <div id="interfacePrincipal">
-
-        <div class="btn-configs" onclick="toggleConfigs()">⚙️</div>
-
-        
-
-        <div id="menuConfigs">
-
-            <h2>CONFIGURAÇÕES</h2>
-
-            <p style="margin-top: 15px; color: #888;">Logado como: <b id="meuIdDisplay" style="color:var(--neon-green)"></b></p>
-
-            
-
-            <button class="btn-id-gps" onclick="abrirAdmin()">🆔 ID GPS (DEVELOPER)</button>
-
-            <button class="btn-excluir-conta" onclick="excluirContaLocal()">🔥 APAGAR E LIBERAR ACESSO</button>
-
-            
-
-            <button onclick="toggleConfigs()" style="background:none; border:none; color:white; margin-top:40px; text-decoration:underline;">VOLTAR AO MAPA</button>
-
-        </div>
-
-
-        <div id="painelAdmin">
-
-            <h2 style="color:var(--neon-blue); text-align: center; margin-bottom: 20px;">PAINEL ID GPS</h2>
-
-            <div id="listaUsuariosAdmin" style="flex:1;">
-
-                </div>
-
-            <button onclick="fecharAdmin()" style="padding:15px; background: #333; color:white; border:none; border-radius:10px; margin-top:10px;">SAIR DO PAINEL</button>
-
-        </div>
-
-
-        <div id="painelInstrucao">Aguardando rota...</div>
-
-        <button id="btnLimpar" class="btn-limpar-rota" onclick="limparRota()">PARAR ROTA</button>
-
-        <div id="map"></div>
-
-        
-
-        <div id="abaAmigos" class="aba-amigos">
-
-            <div class="gatilho-aba" onclick="toggleAba()">AMIGOS</div>
-
-            <div style="display:flex; gap:10px; margin-bottom:15px;">
-
-                <input type="text" id="idAmigoInput" style="flex:1; padding:12px; border-radius:12px; border:none; background:#333; color:#fff;" placeholder="NOME DO AMIGO">
-
-                <button onclick="adicionarAmigo()" style="padding:12px; background:var(--neon-green); color:#000; border:none; border-radius:12px; font-weight:bold;">ADD</button>
-
-            </div>
-
-            <div id="listaCorpo" style="height:230px; overflow-y:auto; padding-bottom:20px;"></div>
-
-        </div>
-
-    </div>
-
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
-
-
-    <script type="module">
-
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-
-        import { getDatabase, ref, set, onValue, get, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-
-        const firebaseConfig = {
-
-            apiKey: "AIzaSyBFO0CMhfRLqgCjoDk1zDD5VmIi9EtOLTY",
-
-            authDomain: "real-gps-ed315.firebaseapp.com",
-
-            databaseURL: "https://real-gps-ed315-default-rtdb.firebaseio.com",
-
-            projectId: "real-gps-ed315",
-
-            storageBucket: "real-gps-ed315.firebasestorage.app",
-
-            messagingSenderId: "1032476157217",
-
-            appId: "1:1032476157217:web:f2dfdbcdf4bcaa7c150a60"
-
-        };
-
-
-        const app = initializeApp(firebaseConfig);
-
-        const db = getDatabase(app);
-
-
-        const boundsBrasil = L.latLngBounds(L.latLng(-34.0, -74.0), L.latLng(5.5, -34.5));
-
-        var map = L.map('map', { zoomControl: false, maxBounds: boundsBrasil, maxBoundsViscosity: 1.0, minZoom: 4 }).setView([-15.79, -47.88], 4);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-
-        let minhaPos = null;
-
-        let controleRota = null;
-
-        let listaInstrucoes = [];
-
-        let ultimaInstrucaoFalada = "";
-
-        const marcadoresAmigos = {};
-
-
-        function falar(texto) {
-
-            if (!texto || texto === ultimaInstrucaoFalada) return;
-
-            window.speechSynthesis.cancel();
-
-            const msg = new SpeechSynthesisUtterance(texto.replace(/[0-9]/g, '').replace(/[\.,-]/g, ' '));
-
-            msg.lang = 'pt-BR';
-
-            window.speechSynthesis.speak(msg);
-
-            ultimaInstrucaoFalada = texto;
-
-            document.getElementById('painelInstrucao').innerText = texto;
-
-            document.getElementById('painelInstrucao').style.display = "block";
-
-        }
-
-
-        // --- SISTEMA DE LOGIN E SEGURANÇA ---
-
-        window.tentarLogin = async function() {
-
-            const id = document.getElementById('idInput').value.trim();
-
-            const erro = document.getElementById('msgErro');
-
-            if(!id) return;
-
-
-            const snap = await get(ref(db, 'usuarios/' + id));
-
-            const idLocal = localStorage.getItem('REALGPS_ID');
-
-
-            if (snap.exists() && idLocal !== id) {
-
-                erro.style.display = "block";
-
-                falar("Acesso negado.");
-
-                return;
-
-            }
-
-
-            localStorage.setItem('REALGPS_ID', id);
-
-            document.getElementById('meuIdDisplay').innerText = id;
-
-            erro.style.display = "none";
-
-            document.getElementById('telaLogin').style.display = "none";
-
-            document.getElementById('interfacePrincipal').style.display = "block";
-
-            
-
-            map.invalidateSize();
-
-            iniciarRastreamento(id);
-
-            monitorarAmigos();
-
-        };
-
-
-        // LIBERA NOVO CADASTRO SEM APAGAR GLOBALMENTE (OPCIONAL)
-
-        window.excluirContaLocal = function() {
-
-            if(confirm("Deseja sair e permitir um novo cadastro neste celular?")){
-
-                localStorage.removeItem('REALGPS_ID');
-
-                window.location.reload();
-
-            }
-
-        };
-
-
-        // --- FUNÇÕES ADMIN ID GPS ---
-
-        window.abrirAdmin = function() {
-
-            const pass = prompt("DIGITE A CHAVE MESTRA ID GPS:");
-
-            if(pass === "netchaveapi") {
-
-                document.getElementById('painelAdmin').style.display = "flex";
-
-                carregarUsuariosAdmin();
-
-            } else {
-
-                alert("CHAVE INCORRETA!");
-
-            }
-
-        };
-
-
-        window.fecharAdmin = () => document.getElementById('painelAdmin').style.display = "none";
-
-
-        function carregarUsuariosAdmin() {
-
-            const lista = document.getElementById('listaUsuariosAdmin');
-
-            onValue(ref(db, 'usuarios'), (snapshot) => {
-
-                lista.innerHTML = "";
-
-                const dados = snapshot.val();
-
-                if(dados) {
-
-                    Object.keys(dados).forEach(userId => {
-
-                        const div = document.createElement('div');
-
-                        div.className = "item-usuario";
-
-                        div.innerHTML = `
-
-                            <span style="color:white; font-weight:bold;">👤 ${userId}</span>
-
-                            <button onclick="deletarUsuarioAdmin('${userId}')" style="background:var(--neon-red); color:white; border:none; padding:8px 15px; border-radius:8px; font-weight:bold;">EXCLUIR</button>
-
-                        `;
-
-                        lista.appendChild(div);
-
-                    });
-
-                }
-
-            });
-
-        }
-
-
-        window.deletarUsuarioAdmin = async function(id) {
-
-            if(confirm(`EXCLUIR DEFINITIVAMENTE O USUÁRIO ${id}?`)) {
-
-                await remove(ref(db, 'usuarios/' + id));
-
-                alert("Usuário removido do banco de dados!");
-
-            }
-
-        };
-
-
-        // --- RASTREAMENTO E MAPA ---
-
-        function iniciarRastreamento(meuId) {
-
-            navigator.geolocation.watchPosition((p) => {
-
-                const { latitude, longitude } = p.coords;
-
-                minhaPos = { lat: latitude, lng: longitude };
-
-                set(ref(db, 'usuarios/' + meuId), { lat: latitude, lng: longitude, visto: Date.now() });
-
-                
-
-                if (!window.meuMarcador) {
-
-                    window.meuMarcador = L.circleMarker([latitude, longitude], {radius: 12, fillColor: "#00ff88", color: "#fff", weight: 3}).addTo(map);
-
-                    map.setView([latitude, longitude], 17);
-
-                } else {
-
-                    window.meuMarcador.setLatLng([latitude, longitude]);
-
-                }
-
-            }, null, { enableHighAccuracy: true });
-
-        }
-
-
-        window.toggleConfigs = () => {
-
-            const m = document.getElementById('menuConfigs');
-
-            m.style.display = m.style.display === "flex" ? "none" : "flex";
-
-        };
-
-
-        window.toggleAba = () => document.getElementById('abaAmigos').classList.toggle('aberta');
-
-
-        window.adicionarAmigo = () => {
-
-            const id = document.getElementById('idAmigoInput').value.trim();
-
-            let amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]");
-
-            if(id && !amigos.includes(id)) {
-
-                amigos.push(id);
-
-                localStorage.setItem('LISTA_AMIGOS', JSON.stringify(amigos));
-
-                monitorarAmigos();
-
-                document.getElementById('idAmigoInput').value = "";
-
-            }
-
-        };
-
-
-        function monitorarAmigos() {
-
-            const amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]");
-
-            const corpo = document.getElementById('listaCorpo');
-
-            corpo.innerHTML = "";
-
-            amigos.forEach(id => {
-
-                const card = document.createElement('div');
-
-                card.className = "card-amigo";
-
-                card.innerHTML = `<div style="color:white; font-weight:bold; display:flex; justify-content:space-between">👤 ${id} <span onclick="window.removerAmigo('${id}')" style="color:var(--neon-red); cursor:pointer">✖</span></div>
-
-                                  <div class="btn-rota-linha" onclick="window.acionarRota('${id}')">INICIAR ROTA ➔</div>`;
-
-                corpo.appendChild(card);
-
-                onValue(ref(db, 'usuarios/' + id), (s) => {
-
-                    const d = s.val();
-
-                    if (d && d.lat) {
-
-                        if (!marcadoresAmigos[id]) marcadoresAmigos[id] = L.circleMarker([d.lat, d.lng], {radius: 9, fillColor: "#001eff", color: "#fff", weight: 2}).addTo(map);
-
-                        else marcadoresAmigos[id].setLatLng([d.lat, d.lng]);
-
-                    }
-
-                });
-
-            });
-
-        }
-
-
-        window.acionarRota = (id) => {
-
-            get(ref(db, 'usuarios/' + id)).then(s => { 
-
-                if(s.val()) {
-
-                    if (controleRota) map.removeControl(controleRota);
-
-                    controleRota = L.Routing.control({
-
-                        waypoints: [L.latLng(minhaPos.lat, minhaPos.lng), L.latLng(s.val().lat, s.val().lng)],
-
-                        lineOptions: { styles: [{ color: '#001eff', weight: 8 }] },
-
-                        createMarker: () => null
-
-                    }).addTo(map);
-
-                    document.getElementById('btnLimpar').style.display = "block";
-
-                    toggleAba();
-
-                }
-
-            });
-
-        };
-
-
-        window.removerAmigo = (id) => {
-
-            let amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]").filter(a => a !== id);
-
-            localStorage.setItem('LISTA_AMIGOS', JSON.stringify(amigos));
-
-            monitorarAmigos();
-
-        };
-
-
-        window.limparRota = () => {
-
-            if (controleRota) map.removeControl(controleRota);
-
-            document.getElementById('btnLimpar').style.display = "none";
-
-        };
-
-
-        window.onload = () => {
-
-            if(localStorage.getItem('REALGPS_ID')) {
-
-                document.getElementById('idInput').value = localStorage.getItem('REALGPS_ID');
-
-                tentarLogin();
-
-            }
-
-        };
-
-    </script>
-
+    <div id="telaLogin">
+        <div class="logo-app"></div>
+        <div id="msgErro">⚠️ ACESSO NEGADO: NOME PROTEGIDO</div>
+        <input type="text" id="idInput" class="input-login" placeholder="DIGITE SEU NOME">
+        <div class="btn-entrar" onclick="tentarLogin()">🚀</div>
+    </div>
+
+    <div id="interfacePrincipal">
+        <div class="btn-configs" onclick="toggleConfigs()">⚙️</div>
+        
+        <div id="menuConfigs">
+            <h2>CONFIGURAÇÕES DE ACESSO</h2>
+            <p style="margin-top: 20px; color: #888;">Logado como: <b id="meuIdDisplay" style="color:var(--neon-green)"></b></p>
+            <button class="btn-excluir-conta" onclick="excluirConta()">🔥 APAGAR E LIBERAR NOME</button>
+            <button onclick="toggleConfigs()" style="background:none; border:none; color:white; margin-top:40px; text-decoration:underline;">VOLTAR</button>
+        </div>
+
+        <div id="painelInstrucao">Aguardando rota...</div>
+        <button id="btnLimpar" class="btn-limpar-rota" onclick="limparRota()">PARAR ROTA</button>
+        <div id="map"></div>
+        
+        <div id="abaAmigos" class="aba-amigos">
+            <div class="gatilho-aba" onclick="toggleAba()">AMIGOS</div>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <input type="text" id="idAmigoInput" style="flex:1; padding:12px; border-radius:12px; border:none; background:#333; color:#fff;" placeholder="NOME DO AMIGO">
+                <button onclick="adicionarAmigo()" style="padding:12px; background:var(--neon-green); color:#000; border:none; border-radius:12px; font-weight:bold;">ADD</button>
+            </div>
+            <div id="listaCorpo" style="height:230px; overflow-y:auto; padding-bottom:20px;"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, get, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBFO0CMhfRLqgCjoDk1zDD5VmIi9EtOLTY",
+            authDomain: "real-gps-ed315.firebaseapp.com",
+            databaseURL: "https://real-gps-ed315-default-rtdb.firebaseio.com",
+            projectId: "real-gps-ed315",
+            storageBucket: "real-gps-ed315.firebasestorage.app",
+            messagingSenderId: "1032476157217",
+            appId: "1:1032476157217:web:f2dfdbcdf4bcaa7c150a60"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const boundsBrasil = L.latLngBounds(L.latLng(-34.0, -74.0), L.latLng(5.5, -34.5));
+        var map = L.map('map', { zoomControl: false, maxBounds: boundsBrasil, maxBoundsViscosity: 1.0, minZoom: 4 }).setView([-15.79, -47.88], 4);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        let minhaPos = null;
+        let controleRota = null;
+        let listaInstrucoes = [];
+        let ultimaInstrucaoFalada = "";
+        const marcadoresAmigos = {};
+
+        function falar(texto) {
+            if (!texto || texto === ultimaInstrucaoFalada) return;
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(texto.replace(/[0-9]/g, '').replace(/[\.,-]/g, ' '));
+            msg.lang = 'pt-BR';
+            window.speechSynthesis.speak(msg);
+            ultimaInstrucaoFalada = texto;
+            document.getElementById('painelInstrucao').innerText = texto;
+            document.getElementById('painelInstrucao').style.display = "block";
+        }
+
+        async function getEnderecoAmigo(lat, lng) {
+            try {
+                const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                const d = await r.json();
+                return d.address.road || d.address.suburb || "Local próximo";
+            } catch (e) { return "Localização do amigo"; }
+        }
+
+        // --- SISTEMA DE TRAVA DE SEGURANÇA 2026 ---
+        window.tentarLogin = async function() {
+            const id = document.getElementById('idInput').value.trim();
+            const erro = document.getElementById('msgErro');
+            if(!id) return;
+
+            const snap = await get(ref(db, 'usuarios/' + id));
+            const idLocal = localStorage.getItem('REALGPS_ID');
+
+            // SE O NOME EXISTE E NÃO É VOCÊ (NÃO TEM O ID NO CELULAR)
+            if (snap.exists() && idLocal !== id) {
+                erro.style.display = "block";
+                falar("Acesso negado. Este nome pertence a outro usuário.");
+                return;
+            }
+
+            // ENTRA E TRAVA
+            localStorage.setItem('REALGPS_ID', id);
+            document.getElementById('meuIdDisplay').innerText = id;
+            erro.style.display = "none";
+            document.getElementById('telaLogin').style.display = "none";
+            document.getElementById('interfacePrincipal').style.display = "block";
+            
+            falar("Real G P S ativo. Nome confirmado.");
+            map.invalidateSize();
+            iniciarRastreamento(id);
+            monitorarAmigos();
+        };
+
+        window.excluirConta = async function() {
+            const id = localStorage.getItem('REALGPS_ID');
+            if(confirm("Isso apagará seu cadastro e liberará o nome. Tem certeza?")){
+                await remove(ref(db, 'usuarios/' + id));
+                localStorage.clear();
+                window.location.reload();
+            }
+        };
+
+        window.toggleConfigs = () => {
+            const m = document.getElementById('menuConfigs');
+            m.style.display = m.style.display === "flex" ? "none" : "flex";
+        };
+
+        window.gerarRotaPara = async (latDest, lngDest, nomeAmigo) => {
+            if (!minhaPos) return;
+            if (controleRota) map.removeControl(controleRota);
+            const rua = await getEnderecoAmigo(latDest, lngDest);
+            falar(`Rota para ${nomeAmigo}. Localizado em ${rua}.`);
+            
+            controleRota = L.Routing.control({
+                waypoints: [L.latLng(minhaPos.lat, minhaPos.lng), L.latLng(latDest, lngDest)],
+                lineOptions: { styles: [{ color: '#001eff', weight: 8, opacity: 0.9 }] },
+                createMarker: () => null, addWaypoints: false
+            }).on('routesfound', e => { 
+                listaInstrucoes = e.routes[0].instructions; 
+            }).addTo(map);
+            
+            document.getElementById('btnLimpar').style.display = "block";
+            if(document.getElementById('abaAmigos').classList.contains('aberta')) toggleAba();
+        };
+
+        function iniciarRastreamento(meuId) {
+            navigator.geolocation.watchPosition((p) => {
+                const { latitude, longitude, heading } = p.coords;
+                minhaPos = { lat: latitude, lng: longitude };
+                
+                if (listaInstrucoes.length > 0 && controleRota && controleRota._router.route) {
+                    const rotaCoords = controleRota._router.route[0].coordinates;
+                    listaInstrucoes.forEach(inst => {
+                        const stepCoord = rotaCoords[inst.index];
+                        if (map.distance([latitude, longitude], [stepCoord.lat, stepCoord.lng]) < 40) falar(inst.text);
+                    });
+                }
+
+                set(ref(db, 'usuarios/' + meuId), { lat: latitude, lng: longitude, visto: Date.now() });
+                if (!window.meuMarcador) {
+                    window.meuMarcador = L.circleMarker([latitude, longitude], {radius: 12, fillColor: "#00ff88", color: "#fff", weight: 3}).addTo(map);
+                    map.setView([latitude, longitude], 17);
+                } else {
+                    window.meuMarcador.setLatLng([latitude, longitude]);
+                    map.panTo([latitude, longitude]);
+                }
+            }, null, { enableHighAccuracy: true });
+        }
+
+        window.toggleAba = () => document.getElementById('abaAmigos').classList.toggle('aberta');
+
+        window.adicionarAmigo = () => {
+            const id = document.getElementById('idAmigoInput').value.trim();
+            let amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]");
+            if(id && !amigos.includes(id)) {
+                amigos.push(id);
+                localStorage.setItem('LISTA_AMIGOS', JSON.stringify(amigos));
+                monitorarAmigos();
+                document.getElementById('idAmigoInput').value = "";
+            }
+        };
+
+        function monitorarAmigos() {
+            const amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]");
+            const corpo = document.getElementById('listaCorpo');
+            corpo.innerHTML = "";
+            amigos.forEach(id => {
+                const card = document.createElement('div');
+                card.className = "card-amigo";
+                card.innerHTML = `<div style="color:white; font-weight:bold; display:flex; justify-content:space-between">👤 ${id} <span onclick="window.removerAmigo('${id}')" style="color:var(--neon-red); cursor:pointer">✖</span></div>
+                                  <div class="btn-rota-linha" onclick="window.acionarRota('${id}')">INICIAR ROTA ➔</div>`;
+                corpo.appendChild(card);
+                onValue(ref(db, 'usuarios/' + id), (s) => {
+                    const d = s.val();
+                    if (d && d.lat) {
+                        if (!marcadoresAmigos[id]) marcadoresAmigos[id] = L.circleMarker([d.lat, d.lng], {radius: 9, fillColor: "#001eff", color: "#fff", weight: 2}).addTo(map);
+                        else marcadoresAmigos[id].setLatLng([d.lat, d.lng]);
+                    }
+                });
+            });
+        }
+
+        window.acionarRota = (id) => {
+            get(ref(db, 'usuarios/' + id)).then(s => { if(s.val()) gerarRotaPara(s.val().lat, s.val().lng, id); });
+        };
+
+        window.removerAmigo = (id) => {
+            let amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]").filter(a => a !== id);
+            localStorage.setItem('LISTA_AMIGOS', JSON.stringify(amigos));
+            monitorarAmigos();
+        };
+
+        window.limparRota = () => {
+            if (controleRota) map.removeControl(controleRota);
+            document.getElementById('btnLimpar').style.display = "none";
+            document.getElementById('painelInstrucao').style.display = "none";
+            listaInstrucoes = [];
+            falar("Rota finalizada.");
+        };
+
+        // AO CARREGAR: SE JÁ ESTÁ LOGADO, ENTRA DIRETO (LOCK)
+        window.onload = () => {
+            if(localStorage.getItem('REALGPS_ID')) {
+                document.getElementById('idInput').value = localStorage.getItem('REALGPS_ID');
+                tentarLogin();
+            }
+        };
+    </script>
 </body>
-
 </html>
-

@@ -10,7 +10,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         html, body { height: 100%; width: 100%; overflow: hidden; background: #000; position: fixed; font-family: sans-serif; }
 
-        /* TELA DE LOGIN COM TRAVA DE DONO */
+        /* TELA DE LOGIN */
         #telaLogin {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -29,10 +29,10 @@
 
         /* INTERFACE */
         #interfacePrincipal { display: none; width: 100vw; height: 100vh; position: absolute; }
-        #map { width: 100%; height: 100%; background: transparent; }
+        #map { width: 100%; height: 100%; background: transparent; transition: opacity 0.3s; }
         
-        /* NOVO: VIDEO DA CAMERA */
-        #videoCamera { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; display: none; }
+        /* VIDEO CHAMADA (FUNDO DO GPS) */
+        #videoCamera { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; display: none; background: #222; }
 
         .btn-configs {
             position: absolute; top: 15px; right: 15px; z-index: 1005;
@@ -47,14 +47,13 @@
             flex-direction: column; align-items: center; justify-content: center; color: white;
         }
         
-        /* ESTILO DOS NOVOS BOTÕES NO MENU */
         .btn-acao { width: 250px; padding: 15px; border-radius: 12px; border: none; font-weight: bold; margin-top: 10px; cursor: pointer; color: white; }
         .btn-blue { background: var(--neon-blue); }
         .btn-red { background: var(--neon-red); }
 
         #painelAdmin { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 4000; display: none; flex-direction: column; align-items: center; padding: 20px; }
         .lista-admin { width: 100%; max-width: 320px; height: 60%; overflow-y: auto; background: #111; border-radius: 15px; margin: 20px 0; padding: 10px; border: 1px dashed #333; }
-        .item-usuario { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #222; align-items: center; }
+        .item-usuario { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #222; align-items: center; color: white; }
 
         #painelInstrucao {
             position: absolute; top: 75px; left: 15px; right: 15px;
@@ -81,9 +80,11 @@
         }
 
         .card-amigo { background: #222; margin-bottom: 15px; border-radius: 15px; padding: 15px; border: 1px solid #333; }
-        .btn-rota-linha { width: 100%; height: 40px; background: var(--neon-blue); margin-top: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.85rem; font-weight: bold; cursor: pointer; }
+        .btn-rota-linha { width: 75%; height: 40px; background: var(--neon-blue); margin-top: 10px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 0.85rem; font-weight: bold; cursor: pointer; }
+        .btn-ligacao { width: 20%; height: 40px; background: var(--neon-green); margin-top: 10px; margin-left: 5%; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; }
 
         .leaflet-routing-container { display: none !important; }
+        .leaflet-tile-pane { transition: opacity 0.5s; }
     </style>
 </head>
 <body>
@@ -104,7 +105,7 @@
             <h2>CONFIGURAÇÕES DE ACESSO</h2>
             <p style="margin-top: 20px; color: #888;">Logado como: <b id="meuIdDisplay" style="color:var(--neon-green)"></b></p>
             
-            <button class="btn-acao btn-blue" onclick="toggleCamera()">📷 ALTERNAR CÂMERA</button>
+            <button class="btn-acao btn-blue" onclick="toggleCamera(true)">📷 TESTAR CÂMERA</button>
             <button class="btn-acao btn-blue" onclick="abrirAdmin()">🆔 ID GPS (EXCLUIR)</button>
             <button class="btn-acao btn-red" onclick="excluirConta()">🔥 APAGAR E LIBERAR NOME</button>
             
@@ -119,6 +120,7 @@
 
         <div id="painelInstrucao">Aguardando rota...</div>
         <button id="btnLimpar" class="btn-limpar-rota" onclick="limparRota()">PARAR ROTA</button>
+        
         <div id="map"></div>
         
         <div id="abaAmigos" class="aba-amigos">
@@ -173,34 +175,34 @@
             document.getElementById('painelInstrucao').style.display = "block";
         }
 
-        // --- FUNÇÃO DE CÂMERA (LIGAÇÃO DE FUNDO) ---
-        window.toggleCamera = async function() {
+        // --- SISTEMA DE CÂMERA / VÍDEO CHAMADA ---
+        window.toggleCamera = async function(manual = false) {
             const video = document.getElementById('videoCamera');
+            const mapEl = document.querySelector('.leaflet-tile-pane');
+            
             if (!streamCamera) {
                 try {
-                    streamCamera = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                    streamCamera = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: true });
                     video.srcObject = streamCamera;
                     video.style.display = "block";
-                    document.querySelector('.leaflet-tile-container').style.opacity = "0.5";
-                    falar("Câmera ativada.");
-                } catch (e) { alert("Erro ao acessar câmera."); }
-            } else {
+                    mapEl.style.opacity = "0.4"; // Torna o mapa transparente para ver o vídeo
+                    if(manual) falar("Vídeo chamada iniciada.");
+                } catch (e) { console.error("Erro câmera:", e); }
+            } else if(manual) {
                 streamCamera.getTracks().forEach(t => t.stop());
                 streamCamera = null;
                 video.style.display = "none";
-                document.querySelector('.leaflet-tile-container').style.opacity = "1";
-                falar("Câmera desligada.");
+                mapEl.style.opacity = "1";
+                falar("Vídeo chamada encerrada.");
             }
         };
 
-        // --- FUNÇÃO ADMIN PARA EXCLUIR IDS DO FIREBASE ---
+        // --- ADMIN / EXCLUIR ID ---
         window.abrirAdmin = function() {
-            const senha = prompt("DIGITE A CHAVE MESTRA:");
+            const senha = prompt("SENHA MESTRA:");
             if (senha === "netchaveapi") {
                 document.getElementById('painelAdmin').style.display = "flex";
                 carregarListaAdmin();
-            } else {
-                alert("ACESSO NEGADO.");
             }
         };
 
@@ -213,7 +215,7 @@
                     Object.keys(users).forEach(id => {
                         const item = document.createElement('div');
                         item.className = "item-usuario";
-                        item.innerHTML = `<span>👤 ${id}</span> <button onclick="deletarID('${id}')" style="background:red; color:white; border:none; padding:5px 10px; border-radius:5px;">EXCLUIR</button>`;
+                        item.innerHTML = `<span>👤 ${id}</span> <button onclick="deletarID('${id}')" style="background:red; color:white; border:none; padding:8px; border-radius:5px;">EXCLUIR</button>`;
                         lista.appendChild(item);
                     });
                 }
@@ -221,50 +223,37 @@
         }
 
         window.deletarID = async (id) => {
-            if (confirm(`Deseja remover ${id} permanentemente?`)) {
-                await remove(ref(db, 'usuarios/' + id));
-                alert("ID removido.");
-            }
+            if (confirm(`Remover ${id}?`)) await remove(ref(db, 'usuarios/' + id));
         };
 
         window.fecharAdmin = () => document.getElementById('painelAdmin').style.display = "none";
 
+        // --- LOGIN E RASTREAMENTO ---
         window.tentarLogin = async function() {
             const id = document.getElementById('idInput').value.trim();
             const erro = document.getElementById('msgErro');
             if(!id) return;
-
             const snap = await get(ref(db, 'usuarios/' + id));
             const idLocal = localStorage.getItem('REALGPS_ID');
-
             if (snap.exists() && idLocal !== id) {
                 erro.style.display = "block";
                 return;
             }
-
             localStorage.setItem('REALGPS_ID', id);
             document.getElementById('meuIdDisplay').innerText = id;
-            erro.style.display = "none";
             document.getElementById('telaLogin').style.display = "none";
             document.getElementById('interfacePrincipal').style.display = "block";
-            
             map.invalidateSize();
             iniciarRastreamento(id);
             monitorarAmigos();
         };
 
         window.excluirConta = async function() {
-            const id = localStorage.getItem('REALGPS_ID');
-            if(confirm("Isso apagará seu cadastro e liberará o nome. Tem certeza?")){
-                await remove(ref(db, 'usuarios/' + id));
+            if(confirm("Apagar seu cadastro?")){
+                await remove(ref(db, 'usuarios/' + localStorage.getItem('REALGPS_ID')));
                 localStorage.clear();
                 window.location.reload();
             }
-        };
-
-        window.toggleConfigs = () => {
-            const m = document.getElementById('menuConfigs');
-            m.style.display = m.style.display === "flex" ? "none" : "flex";
         };
 
         function iniciarRastreamento(meuId) {
@@ -302,8 +291,14 @@
             amigos.forEach(id => {
                 const card = document.createElement('div');
                 card.className = "card-amigo";
-                card.innerHTML = `<div style="color:white; font-weight:bold; display:flex; justify-content:space-between">👤 ${id} <span onclick="window.removerAmigo('${id}')" style="color:var(--neon-red); cursor:pointer">✖</span></div>
-                                  <div class="btn-rota-linha" onclick="window.acionarRota('${id}')">INICIAR ROTA ➔</div>`;
+                card.innerHTML = `
+                    <div style="color:white; font-weight:bold; display:flex; justify-content:space-between">
+                        👤 ${id} <span onclick="window.removerAmigo('${id}')" style="color:var(--neon-red); cursor:pointer">✖</span>
+                    </div>
+                    <div style="display:flex; align-items:center;">
+                        <div class="btn-rota-linha" onclick="window.acionarRota('${id}')">INICIAR ROTA ➔</div>
+                        <div class="btn-ligacao" onclick="window.iniciarChamada('${id}')">📞</div>
+                    </div>`;
                 corpo.appendChild(card);
                 onValue(ref(db, 'usuarios/' + id), (s) => {
                     const d = s.val();
@@ -314,6 +309,11 @@
                 });
             });
         }
+
+        window.iniciarChamada = (id) => {
+            falar("Chamando " + id);
+            toggleCamera(false); // Abre a câmera automaticamente
+        };
 
         window.acionarRota = (id) => {
             get(ref(db, 'usuarios/' + id)).then(s => { 
@@ -326,7 +326,9 @@
                         lineOptions: { styles: [{ color: '#001eff', weight: 8 }] }
                     }).addTo(map);
                     document.getElementById('btnLimpar').style.display = "block";
+                    toggleCamera(false); // ATIVA CÂMERA AUTOMATICAMENTE NA ROTA
                     toggleAba();
+                    falar("Rota e câmera ativadas.");
                 }
             });
         };
@@ -341,6 +343,12 @@
             if (controleRota) map.removeControl(controleRota);
             document.getElementById('btnLimpar').style.display = "none";
             document.getElementById('painelInstrucao').style.display = "none";
+            falar("Rota encerrada.");
+        };
+
+        window.toggleConfigs = () => {
+            const m = document.getElementById('menuConfigs');
+            m.style.display = m.style.display === "flex" ? "none" : "flex";
         };
 
         window.onload = () => {

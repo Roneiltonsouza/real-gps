@@ -27,17 +27,23 @@
         #msgErro { color: var(--neon-red); font-weight: bold; margin: 15px; display: none; text-shadow: 0 0 10px red; text-align: center; width: 85%; }
         .btn-entrar { width: 75px; height: 75px; background: var(--neon-blue); border: 4px solid #fff; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 35px; margin-top: 15px; box-shadow: 0 0 20px var(--neon-blue); }
 
-        /* INTERFACE */
+        /* INTERFACE PRINCIPAL */
         #interfacePrincipal { display: none; width: 100vw; height: 100vh; position: absolute; }
         #map { width: 100%; height: 100%; z-index: 1; }
         
-        /* JANELA FLUTUANTE DA CAMERA */
+        /* JANELA FLUTUANTE DA CAMERA COM CONTROLES */
         #containerCamera {
-            position: fixed; top: 80px; right: 15px; width: 120px; height: 160px;
-            border: 2px solid var(--neon-green); border-radius: 12px; overflow: hidden;
-            z-index: 2000; display: none; background: #000; box-shadow: 0 0 15px rgba(0,255,136,0.5);
+            position: fixed; top: 80px; right: 15px; width: 120px; z-index: 2000; display: none;
+        }
+        .video-box {
+            width: 120px; height: 160px; border: 2px solid var(--neon-green); border-radius: 12px;
+            overflow: hidden; background: #000; box-shadow: 0 0 15px rgba(0,255,136,0.5);
         }
         #videoCamera { width: 100%; height: 100%; object-fit: cover; }
+        .controles-camera { display: flex; justify-content: space-between; margin-top: 5px; gap: 5px; }
+        .btn-cam { flex: 1; padding: 8px 0; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .btn-cam-on { background: var(--neon-green); color: black; }
+        .btn-cam-off { background: var(--neon-red); }
 
         .btn-configs {
             position: absolute; top: 15px; right: 15px; z-index: 1005;
@@ -56,7 +62,6 @@
         .btn-blue { background: var(--neon-blue); }
         .btn-red { background: var(--neon-red); }
 
-        /* PAINEL ADMIN PARA EXCLUIR ID */
         #painelAdmin { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 4000; display: none; flex-direction: column; align-items: center; padding: 20px; }
         .lista-admin { width: 100%; max-width: 320px; height: 60%; overflow-y: auto; background: #111; border-radius: 15px; margin: 20px 0; padding: 10px; border: 1px dashed #333; }
         .item-usuario { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #222; align-items: center; color: white; }
@@ -95,7 +100,13 @@
 <body>
 
     <div id="containerCamera">
-        <video id="videoCamera" autoplay playsinline></video>
+        <div class="video-box">
+            <video id="videoCamera" autoplay playsinline></video>
+        </div>
+        <div class="controles-camera">
+            <button class="btn-cam btn-cam-on" onclick="ativarCamera()">ON</button>
+            <button class="btn-cam btn-cam-off" onclick="desligarCamera()">OFF</button>
+        </div>
     </div>
 
     <div id="telaLogin">
@@ -111,10 +122,8 @@
         <div id="menuConfigs">
             <h2>CONFIGURAÇÕES DE ACESSO</h2>
             <p style="margin-top: 20px; color: #888;">Logado como: <b id="meuIdDisplay" style="color:var(--neon-green)"></b></p>
-            
             <button class="btn-acao btn-blue" onclick="abrirAdmin()">🆔 ID GPS (EXCLUIR)</button>
             <button class="btn-acao btn-red" onclick="excluirConta()">🔥 APAGAR E LIBERAR NOME</button>
-            
             <button onclick="toggleConfigs()" style="background:none; border:none; color:white; margin-top:40px; text-decoration:underline;">VOLTAR</button>
         </div>
 
@@ -126,7 +135,6 @@
 
         <div id="painelInstrucao">Aguardando rota...</div>
         <button id="btnLimpar" class="btn-limpar-rota" onclick="limparRota()">PARAR ROTA</button>
-        
         <div id="map"></div>
         
         <div id="abaAmigos" class="aba-amigos">
@@ -177,7 +185,7 @@
             document.getElementById('painelInstrucao').style.display = "block";
         }
 
-        // --- SISTEMA DE CAMERA PIP ---
+        // --- SISTEMA DE CÂMERA ---
         window.ativarCamera = async function() {
             const container = document.getElementById('containerCamera');
             const video = document.getElementById('videoCamera');
@@ -186,13 +194,21 @@
                     streamCamera = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true });
                     video.srcObject = streamCamera;
                     container.style.display = "block";
-                } catch (e) { console.error(e); }
+                } catch (e) { alert("Erro na câmera."); }
             } else {
                 container.style.display = "block";
             }
         };
 
-        // --- ADMIN / EXCLUIR ID ---
+        window.desligarCamera = () => {
+            if (streamCamera) {
+                streamCamera.getTracks().forEach(t => t.stop());
+                streamCamera = null;
+            }
+            document.getElementById('containerCamera').style.display = "none";
+        };
+
+        // --- ADMIN SISTEMA ---
         window.abrirAdmin = function() {
             if (prompt("SENHA:") === "netchaveapi") {
                 document.getElementById('painelAdmin').style.display = "flex";
@@ -212,13 +228,12 @@
         window.deletarIDdoBanco = async (id) => { if (confirm(`Remover ${id}?`)) await remove(ref(db, 'usuarios/' + id)); };
         window.fecharAdmin = () => document.getElementById('painelAdmin').style.display = "none";
 
-        // --- LOGIN E AMIGOS ---
+        // --- FUNCIONALIDADES ---
         window.tentarLogin = async function() {
             const id = document.getElementById('idInput').value.trim();
             if(!id) return;
             const snap = await get(ref(db, 'usuarios/' + id));
-            const idLocal = localStorage.getItem('REALGPS_ID');
-            if (snap.exists() && idLocal !== id) {
+            if (snap.exists() && localStorage.getItem('REALGPS_ID') !== id) {
                 document.getElementById('msgErro').style.display = "block";
                 return;
             }
@@ -271,7 +286,7 @@
         }
 
         window.iniciarLigacao = (id) => {
-            falar("Chamada de vídeo com " + id);
+            falar("Ligando para " + id);
             ativarCamera();
         };
 
@@ -288,7 +303,6 @@
                     document.getElementById('btnLimpar').style.display = "block";
                     ativarCamera();
                     if(document.getElementById('abaAmigos').classList.contains('aberta')) toggleAba();
-                    falar("Rota iniciada.");
                 }
             });
         };
@@ -297,13 +311,12 @@
             if (controleRota) map.removeControl(controleRota);
             document.getElementById('btnLimpar').style.display = "none";
             document.getElementById('painelInstrucao').style.display = "none";
-            document.getElementById('containerCamera').style.display = "none";
-            if(streamCamera) { streamCamera.getTracks().forEach(t => t.stop()); streamCamera = null; }
+            desligarCamera();
         };
 
         window.excluirConta = async function() {
             const id = localStorage.getItem('REALGPS_ID');
-            if(confirm("Liberar este nome?")){
+            if(confirm("Liberar nome?")){
                 await remove(ref(db, 'usuarios/' + id));
                 localStorage.clear();
                 window.location.reload();

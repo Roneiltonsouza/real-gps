@@ -41,7 +41,7 @@
         .btn-rota-linha { width: 75%; height: 40px; background: var(--neon-blue); margin-top: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.85rem; font-weight: bold; cursor: pointer; float: left; }
         .btn-video-call { width: 20%; height: 40px; background: var(--neon-green); margin-top: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #000; font-size: 1.2rem; cursor: pointer; float: right; }
 
-        /* JANELA DE VÍDEO */
+        /* NOVA JANELA DE VÍDEO */
         #containerVideo {
             position: fixed; top: 10px; left: 10px; width: 160px; height: 220px; 
             background: #000; border: 2px solid var(--neon-green); border-radius: 15px;
@@ -72,7 +72,7 @@
         <div class="btn-configs" onclick="toggleConfigs()">⚙️</div>
         
         <div id="containerVideo">
-            <video id="localVideo" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+            <video id="localVideo" autoplay playsinline></video>
             <button class="btn-fechar-video" onclick="encerrarChamada()">ENCERRAR</button>
         </div>
 
@@ -154,7 +154,7 @@
             document.getElementById('painelInstrucao').style.display = "block";
         }
 
-        // --- SISTEMA DE CHAMADA DE VÍDEO ATUALIZADO ---
+        // --- SISTEMA DE CHAMADA DE VÍDEO ---
         window.iniciarChamadaVideo = async function(idAmigo) {
             const meuId = localStorage.getItem('REALGPS_ID');
             falar("Iniciando vídeo chamada para " + idAmigo);
@@ -162,28 +162,14 @@
             abrirCamera();
         };
 
-        // FUNÇÃO ABRIR CÂMERA ATUALIZADA PARA ANDROID
         async function abrirCamera() {
             try {
-                const constraints = { 
-                    video: { facingMode: "user" }, 
-                    audio: true 
-                };
-                
-                streamLocal = await navigator.mediaDevices.getUserMedia(constraints);
+                streamLocal = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 const videoEl = document.getElementById('localVideo');
-                
                 videoEl.srcObject = streamLocal;
-                
-                videoEl.onloadedmetadata = () => {
-                    videoEl.play();
-                    document.getElementById('containerVideo').style.display = 'block';
-                    falar("Câmera ativada com sucesso");
-                };
-
+                document.getElementById('containerVideo').style.display = 'block';
             } catch (e) {
-                console.error("Erro na câmera:", e);
-                alert("Erro: " + e.name + ". Verifique se as permissões de Câmera e Microfone estão ativas nas configurações do seu celular.");
+                alert("Erro ao acessar câmera: " + e);
             }
         }
 
@@ -218,7 +204,7 @@
             });
         }
 
-        // --- RESTANTE DAS FUNÇÕES (LOGIN, ADMIN, RASTREAMENTO) ---
+        // --- SISTEMA DE LOGIN ---
         window.tentarLogin = async function() {
             const id = document.getElementById('idInput').value.trim();
             const erro = document.getElementById('msgErro');
@@ -245,6 +231,7 @@
             monitorarChamadas(id);
         };
 
+        // --- FUNÇÕES ADMIN ---
         window.abrirAdmin = function() {
             const pass = prompt("DIGITE A CHAVE MESTRA ID GPS:");
             if(pass === "netchaveapi") {

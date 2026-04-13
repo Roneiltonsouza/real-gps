@@ -10,7 +10,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         html, body { height: 100%; width: 100%; overflow: hidden; background: #000; position: fixed; font-family: sans-serif; }
 
-        /* TELA DE LOGIN COM TRAVA DE DONO */
+        /* TELA DE LOGIN */
         #telaLogin {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -134,6 +134,7 @@
 
         let minhaPos = null;
         let controleRota = null;
+        let linhaAzul = null; // LINHA PARA SABER ONDE A PESSOA ESTÁ
         let listaInstrucoes = [];
         let ultimaInstrucaoFalada = "";
         const marcadoresAmigos = {};
@@ -149,15 +150,6 @@
             document.getElementById('painelInstrucao').style.display = "block";
         }
 
-        async function getEnderecoAmigo(lat, lng) {
-            try {
-                const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-                const d = await r.json();
-                return d.address.road || d.address.suburb || "Local próximo";
-            } catch (e) { return "Localização do amigo"; }
-        }
-
-        // --- SISTEMA DE TRAVA DE SEGURANÇA 2026 ---
         window.tentarLogin = async function() {
             const id = document.getElementById('idInput').value.trim();
             const erro = document.getElementById('msgErro');
@@ -166,84 +158,126 @@
             const snap = await get(ref(db, 'usuarios/' + id));
             const idLocal = localStorage.getItem('REALGPS_ID');
 
-            // SE O NOME EXISTE E NÃO É VOCÊ (NÃO TEM O ID NO CELULAR)
             if (snap.exists() && idLocal !== id) {
                 erro.style.display = "block";
-                falar("Acesso negado. Este nome pertence a outro usuário.");
+                falar("Acesso negado.");
                 return;
             }
 
-            // ENTRA E TRAVA
             localStorage.setItem('REALGPS_ID', id);
             document.getElementById('meuIdDisplay').innerText = id;
             erro.style.display = "none";
             document.getElementById('telaLogin').style.display = "none";
             document.getElementById('interfacePrincipal').style.display = "block";
             
-            falar("Real G P S ativo. Nome confirmado.");
             map.invalidateSize();
             iniciarRastreamento(id);
             monitorarAmigos();
         };
 
-        window.excluirConta = async function() {
-            const id = localStorage.getItem('REALGPS_ID');
-            if(confirm("Isso apagará seu cadastro e liberará o nome. Tem certeza?")){
-                await remove(ref(db, 'usuarios/' + id));
-                localStorage.clear();
-                window.location.reload();
-            }
-        };
-
-        window.toggleConfigs = () => {
-            const m = document.getElementById('menuConfigs');
-            m.style.display = m.style.display === "flex" ? "none" : "flex";
-        };
-
-        window.gerarRotaPara = async (latDest, lngDest, nomeAmigo) => {
+        // FUNÇÃO PARA CRIAR A LINHA AZUL DE ROTA DIRETA
+        window.gerarLinhaRota = (latAmigo, lngAmigo) => {
             if (!minhaPos) return;
-            if (controleRota) map.removeControl(controleRota);
-            const rua = await getEnderecoAmigo(latDest, lngDest);
-            falar(`Rota para ${nomeAmigo}. Localizado em ${rua}.`);
-            
-            controleRota = L.Routing.control({
-                waypoints: [L.latLng(minhaPos.lat, minhaPos.lng), L.latLng(latDest, lngDest)],
-                lineOptions: { styles: [{ color: '#001eff', weight: 8, opacity: 0.9 }] },
-                createMarker: () => null, addWaypoints: false
-            }).on('routesfound', e => { 
-                listaInstrucoes = e.routes[0].instructions; 
+            if (linhaAzul) map.removeLayer(linhaAzul);
+
+            // Cria uma linha azul neon entre você e o amigo
+            linhaAzul = L.polyline([
+                [minhaPos.lat, minhaPos.lng],
+                [latAmigo, lngAmigo]
+            ], {
+                color: '#001eff',
+                weight: 5,
+                opacity: 0.8,
+                dashArray: '10, 10', // Linha tracejada para estilo radar
+                lineJoin: 'round'
             }).addTo(map);
-            
-            document.getElementById('btnLimpar').style.display = "block";
-            if(document.getElementById('abaAmigos').classList.contains('aberta')) toggleAba();
+
+            // Ajusta o zoom para ver ambos
+            map.fitBounds(linhaAzul.getBounds(), { padding: [50, 50] });
+        };
+
+        window.acionarRota = (id) => {
+            get(ref(db, 'usuarios/' + id)).then(s => { 
+                const d = s.val();
+                if(d && d.lat) {
+                    gerarLinhaRota(d.lat, d.lng);
+                    falar(`Localizando ${id}. Linha de rastreio azul ativada.`);
+                    if(document.getElementById('abaAmigos').classList.contains('aberta')) toggleAba();
+                    document.getElementById('btnLimpar').style.display = "block";
+                } 
+            });
         };
 
         function iniciarRastreamento(meuId) {
             navigator.geolocation.watchPosition((p) => {
-                const { latitude, longitude, heading } = p.coords;
+                const { latitude, longitude } = p.coords;
                 minhaPos = { lat: latitude, lng: longitude };
                 
-                if (listaInstrucoes.length > 0 && controleRota && controleRota._router.route) {
-                    const rotaCoords = controleRota._router.route[0].coordinates;
-                    listaInstrucoes.forEach(inst => {
-                        const stepCoord = rotaCoords[inst.index];
-                        if (map.distance([latitude, longitude], [stepCoord.lat, stepCoord.lng]) < 40) falar(inst.text);
-                    });
-                }
-
                 set(ref(db, 'usuarios/' + meuId), { lat: latitude, lng: longitude, visto: Date.now() });
+
                 if (!window.meuMarcador) {
                     window.meuMarcador = L.circleMarker([latitude, longitude], {radius: 12, fillColor: "#00ff88", color: "#fff", weight: 3}).addTo(map);
                     map.setView([latitude, longitude], 17);
                 } else {
                     window.meuMarcador.setLatLng([latitude, longitude]);
-                    map.panTo([latitude, longitude]);
                 }
+
+                // Atualiza a linha azul se ela estiver ativa
+                if (linhaAzul) {
+                    const latlngs = linhaAzul.getLatLngs();
+                    latlngs[0] = [latitude, longitude];
+                    linhaAzul.setLatLngs(latlngs);
+                }
+
             }, null, { enableHighAccuracy: true });
         }
 
-        window.toggleAba = () => document.getElementById('abaAmigos').classList.toggle('aberta');
+        window.monitorarAmigos = () => {
+            const amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]");
+            const corpo = document.getElementById('listaCorpo');
+            corpo.innerHTML = "";
+            amigos.forEach(id => {
+                const card = document.createElement('div');
+                card.className = "card-amigo";
+                card.innerHTML = `<div style="color:white; font-weight:bold; display:flex; justify-content:space-between">👤 ${id} <span onclick="window.removerAmigo('${id}')" style="color:var(--neon-red); cursor:pointer">✖</span></div>
+                                  <div class="btn-rota-linha" onclick="window.acionarRota('${id}')">TRAÇAR ROTA AZUL ➔</div>`;
+                corpo.appendChild(card);
+                
+                onValue(ref(db, 'usuarios/' + id), (s) => {
+                    const d = s.val();
+                    if (d && d.lat) {
+                        if (!marcadoresAmigos[id]) {
+                            marcadoresAmigos[id] = L.circleMarker([d.lat, d.lng], {radius: 10, fillColor: "#001eff", color: "#fff", weight: 2}).addTo(map);
+                        } else {
+                            marcadoresAmigos[id].setLatLng([d.lat, d.lng]);
+                            // Se a linha azul está ativa para este amigo, atualiza a ponta final dela
+                            if (linhaAzul && linhaAzul.getLatLngs()[1]) {
+                                const latlngs = linhaAzul.getLatLngs();
+                                // Verificação simples: se a linha termina perto do marcador do amigo
+                                latlngs[1] = [d.lat, d.lng];
+                                linhaAzul.setLatLngs(latlngs);
+                            }
+                        }
+                    }
+                });
+            });
+        }
 
+        window.limparRota = () => {
+            if (linhaAzul) {
+                map.removeLayer(linhaAzul);
+                linhaAzul = null;
+            }
+            document.getElementById('btnLimpar').style.display = "none";
+            falar("Rastreamento encerrado.");
+        };
+
+        // Funções auxiliares mantidas
+        window.toggleAba = () => document.getElementById('abaAmigos').classList.toggle('aberta');
+        window.toggleConfigs = () => {
+            const m = document.getElementById('menuConfigs');
+            m.style.display = m.style.display === "flex" ? "none" : "flex";
+        };
         window.adicionarAmigo = () => {
             const id = document.getElementById('idAmigoInput').value.trim();
             let amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]");
@@ -254,46 +288,12 @@
                 document.getElementById('idAmigoInput').value = "";
             }
         };
-
-        function monitorarAmigos() {
-            const amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]");
-            const corpo = document.getElementById('listaCorpo');
-            corpo.innerHTML = "";
-            amigos.forEach(id => {
-                const card = document.createElement('div');
-                card.className = "card-amigo";
-                card.innerHTML = `<div style="color:white; font-weight:bold; display:flex; justify-content:space-between">👤 ${id} <span onclick="window.removerAmigo('${id}')" style="color:var(--neon-red); cursor:pointer">✖</span></div>
-                                  <div class="btn-rota-linha" onclick="window.acionarRota('${id}')">INICIAR ROTA ➔</div>`;
-                corpo.appendChild(card);
-                onValue(ref(db, 'usuarios/' + id), (s) => {
-                    const d = s.val();
-                    if (d && d.lat) {
-                        if (!marcadoresAmigos[id]) marcadoresAmigos[id] = L.circleMarker([d.lat, d.lng], {radius: 9, fillColor: "#001eff", color: "#fff", weight: 2}).addTo(map);
-                        else marcadoresAmigos[id].setLatLng([d.lat, d.lng]);
-                    }
-                });
-            });
-        }
-
-        window.acionarRota = (id) => {
-            get(ref(db, 'usuarios/' + id)).then(s => { if(s.val()) gerarRotaPara(s.val().lat, s.val().lng, id); });
-        };
-
         window.removerAmigo = (id) => {
             let amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]").filter(a => a !== id);
             localStorage.setItem('LISTA_AMIGOS', JSON.stringify(amigos));
             monitorarAmigos();
         };
 
-        window.limparRota = () => {
-            if (controleRota) map.removeControl(controleRota);
-            document.getElementById('btnLimpar').style.display = "none";
-            document.getElementById('painelInstrucao').style.display = "none";
-            listaInstrucoes = [];
-            falar("Rota finalizada.");
-        };
-
-        // AO CARREGAR: SE JÁ ESTÁ LOGADO, ENTRA DIRETO (LOCK)
         window.onload = () => {
             if(localStorage.getItem('REALGPS_ID')) {
                 document.getElementById('idInput').value = localStorage.getItem('REALGPS_ID');

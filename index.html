@@ -29,13 +29,13 @@
         #interfacePrincipal { display: none; width: 100vw; height: 100vh; position: absolute; }
         #map { width: 100%; height: 100%; }
 
-        /* CAMERA PIP (NOVO) */
+        /* CAMERA PIP */
         #containerCamera { position: fixed; top: 80px; right: 15px; width: 120px; z-index: 2005; display: none; }
         .video-box { width: 120px; height: 160px; border: 2px solid var(--neon-green); border-radius: 12px; overflow: hidden; background: #000; position: relative; }
-        #videoRemote { width: 100%; height: 100%; object-fit: cover; }
+        #videoRemote { width: 100%; height: 100%; object-fit: cover; background: #111; }
         #videoLocal { position: absolute; bottom: 5px; right: 5px; width: 40px; height: 50px; border: 1px solid #fff; z-index: 2006; object-fit: cover; background: #222; }
 
-        /* NOTIFICAÇÃO DE CHAMADA (NOVO) */
+        /* NOTIFICAÇÃO DE CHAMADA */
         #notificacaoChamada { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000; display: none; flex-direction: column; align-items: center; justify-content: center; color: white; }
         .btn-atender { background: var(--neon-green); color: #000; padding: 20px; border-radius: 50%; border: none; font-size: 30px; margin: 20px; }
         .btn-recusar { background: var(--neon-red); color: #fff; padding: 20px; border-radius: 50%; border: none; font-size: 30px; margin: 20px; }
@@ -53,7 +53,6 @@
             flex-direction: column; align-items: center; justify-content: center; color: white;
         }
         
-        /* LISTA ADMIN (NOVO) */
         .lista-admin { width: 90%; max-width: 320px; height: 50%; overflow-y: auto; background: #111; margin: 20px 0; border: 1px solid #333; padding: 10px; }
         .item-usuario { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #222; align-items: center; }
 
@@ -113,11 +112,8 @@
         <div id="menuConfigs">
             <h2>SISTEMA REAL GPS 2026</h2>
             <p style="margin-top: 20px; color: #888;">ID Atual: <b id="meuIdDisplay" style="color:var(--neon-green)"></b></p>
-            
             <button onclick="abrirAdmin()" style="background:var(--neon-blue); color:white; padding:15px; border-radius:15px; margin-top:20px; border:none; width:250px; font-weight:bold;">🆔 PAINEL DE IDs (ADM)</button>
-            
             <button class="btn-excluir-conta" onclick="excluirConta()">🔥 APAGAR MEU REGISTRO</button>
-            
             <button onclick="toggleConfigs()" style="background:none; border:none; color:white; margin-top:40px; text-decoration:underline;">VOLTAR</button>
         </div>
 
@@ -144,7 +140,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, get, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue, get, remove, update, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBFO0CMhfRLqgCjoDk1zDD5VmIi9EtOLTY",
@@ -167,10 +163,10 @@
         let linhaAzul = null;
         let marcadorAmigoAtivo = null;
         let monitorAmigoRef = null;
-        
-        // Variaveis WebRTC
         let localStream = null;
         let pc = null;
+
+        const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
 
         function falar(texto) {
             window.speechSynthesis.cancel();
@@ -182,22 +178,18 @@
         window.tentarLogin = async function() {
             const id = document.getElementById('idInput').value.trim();
             if(!id) return;
-
             const snap = await get(ref(db, 'usuarios/' + id));
             const idLocal = localStorage.getItem('REALGPS_ID');
-
             if (snap.exists() && idLocal !== id) {
                 document.getElementById('msgErro').style.display = "block";
                 falar("Acesso negado.");
                 return;
             }
-
             meuId = id;
             localStorage.setItem('REALGPS_ID', id);
             document.getElementById('meuIdDisplay').innerText = id;
             document.getElementById('telaLogin').style.display = "none";
             document.getElementById('interfacePrincipal').style.display = "block";
-            
             map.invalidateSize();
             iniciarMeuGPS(id);
             renderizarListaAmigos();
@@ -209,7 +201,6 @@
                 const { latitude, longitude } = p.coords;
                 minhaPos = { lat: latitude, lng: longitude };
                 set(ref(db, 'usuarios/' + id), { lat: latitude, lng: longitude, visto: Date.now() });
-
                 if (!window.meuMarcador) {
                     window.meuMarcador = L.circleMarker([latitude, longitude], {radius: 12, fillColor: "#00ff88", color: "#fff", weight: 3}).addTo(map);
                     map.setView([latitude, longitude], 17);
@@ -219,7 +210,7 @@
             }, null, { enableHighAccuracy: true });
         }
 
-        // --- SISTEMA ADMIN: EXCLUIR IDs ---
+        // --- SISTEMA ADMIN ---
         window.abrirAdmin = () => {
             const senha = prompt("SENHA DO SISTEMA:");
             if(senha === "netchaveapi") {
@@ -246,7 +237,7 @@
             }
         };
 
-        // --- CHAMADA DE VÍDEO (WebRTC) ---
+        // --- VÍDEO CHAMADA CORRIGIDA (SINALIZAÇÃO COMPLETA) ---
         async function iniciarMidia() {
             localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
             document.getElementById('videoLocal').srcObject = localStream;
@@ -255,11 +246,11 @@
 
         window.ligarParaAmigo = async (idAmigo) => {
             await iniciarMidia();
-            pc = new RTCPeerConnection();
+            pc = new RTCPeerConnection(servers);
             localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
             pc.onicecandidate = e => {
-                if(e.candidate) set(ref(db, `chamadas/${idAmigo}/ice`), e.candidate.toJSON());
+                if(e.candidate) push(ref(db, `chamadas/${idAmigo}/ice_de`), e.candidate.toJSON());
             };
 
             pc.ontrack = e => {
@@ -269,22 +260,33 @@
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
 
-            set(ref(db, `chamadas/${idAmigo}`), {
-                de: meuId,
-                offer: offer.sdp,
-                status: "tocando"
+            const callRef = ref(db, `chamadas/${idAmigo}`);
+            await set(callRef, { de: meuId, offer: offer.sdp, status: "tocando" });
+
+            // Escuta a resposta (Answer)
+            onValue(callRef, snap => {
+                const val = snap.val();
+                if(val && val.answer && pc.signalingState !== "stable") {
+                    pc.setRemoteDescription(new RTCSessionDescription({type: 'answer', sdp: val.answer}));
+                }
             });
+
+            // Escuta ICE do outro
+            onChildAdded(ref(db, `chamadas/${idAmigo}/ice_para`), snap => {
+                if(snap.val()) pc.addIceCandidate(new RTCIceCandidate(snap.val()));
+            });
+
             falar("Chamando " + idAmigo);
         };
 
         window.atenderLigacao = async () => {
             const data = window.chamadaAtiva;
             await iniciarMidia();
-            pc = new RTCPeerConnection();
+            pc = new RTCPeerConnection(servers);
             localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
             pc.onicecandidate = e => {
-                if(e.candidate) set(ref(db, `chamadas/${data.de}/ice`), e.candidate.toJSON());
+                if(e.candidate) push(ref(db, `chamadas/${meuId}/ice_para`), e.candidate.toJSON());
             };
 
             pc.ontrack = e => {
@@ -296,6 +298,12 @@
             await pc.setLocalDescription(answer);
 
             update(ref(db, `chamadas/${meuId}`), { answer: answer.sdp, status: "conversa" });
+            
+            // Escuta ICE do quem ligou
+            onChildAdded(ref(db, `chamadas/${meuId}/ice_de`), snap => {
+                if(snap.val()) pc.addIceCandidate(new RTCIceCandidate(snap.val()));
+            });
+
             document.getElementById('notificacaoChamada').style.display = "none";
         };
 
@@ -303,14 +311,20 @@
             remove(ref(db, `chamadas/${meuId}`));
             if(localStream) localStream.getTracks().forEach(t => t.stop());
             if(pc) pc.close();
+            pc = null;
             document.getElementById('containerCamera').style.display = "none";
             document.getElementById('notificacaoChamada').style.display = "none";
+            document.getElementById('videoRemote').srcObject = null;
         };
 
         function monitorarChamadas() {
             onValue(ref(db, `chamadas/${meuId}`), snap => {
                 const data = snap.val();
-                if(data && data.status === "tocando") {
+                if(!data) {
+                    if(pc) finalizarChamada(); // Se o outro apagar a chamada, encerra aqui
+                    return;
+                }
+                if(data.status === "tocando") {
                     document.getElementById('textoChamada').innerText = data.de + " LIGANDO...";
                     document.getElementById('notificacaoChamada').style.display = "flex";
                     window.chamadaAtiva = data;
@@ -354,11 +368,7 @@
             amigos.forEach(id => {
                 const card = document.createElement('div');
                 card.className = "card-amigo";
-                card.innerHTML = `
-                    <div style="color:white; font-weight:bold; display:flex; justify-content:space-between">
-                        👤 ID: ${id} 
-                        <span onclick="window.removerAmigo('${id}')" style="color:var(--neon-red); cursor:pointer">✖</span>
-                    </div>
+                card.innerHTML = `<div style="color:white; font-weight:bold; display:flex; justify-content:space-between">👤 ID: ${id} <span onclick="window.removerAmigo('${id}')" style="color:var(--neon-red); cursor:pointer">✖</span></div>
                     <div class="btn-acoes">
                         <button class="btn-rota-linha" onclick="window.acionarRastreio('${id}')">RASTREAR AGORA ➔</button>
                         <button class="btn-video-amigo" onclick="window.ligarParaAmigo('${id}')">📹</button>

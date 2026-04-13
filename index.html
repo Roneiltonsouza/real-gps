@@ -15,7 +15,8 @@
         .logo-app { width: 120px; height: 120px; border-radius: 30px; background: url('https://i.ibb.co/d0KVj1SJ/Gemini-Generated-Image-dmy11dmy11dmy11d.png') center/cover; box-shadow: 0 0 20px var(--neon-green); border: 2px solid var(--neon-green); margin-bottom: 25px; }
         .input-login { width: 80%; max-width: 280px; padding: 15px; border-radius: 25px; border: 2px solid var(--neon-green); background: rgba(255,255,255,0.05); color: #fff; text-align: center; outline: none; font-size: 1.1rem; }
         #msgErro { color: var(--neon-red); font-weight: bold; margin: 15px; display: none; text-shadow: 0 0 10px red; text-align: center; width: 85%; }
-        .btn-entrar { width: 75px; height: 75px; background: var(--neon-blue); border: 4px solid #fff; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 35px; margin-top: 15px; box-shadow: 0 0 20px var(--neon-blue); }
+        .btn-entrar { width: 75px; height: 75px; background: var(--neon-blue); border: 4px solid #fff; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 35px; margin-top: 15px; box-shadow: 0 0 20px var(--neon-blue); transition: transform 0.1s; }
+        .btn-entrar:active { transform: scale(0.9); }
 
         /* INTERFACE */
         #interfacePrincipal { display: none; width: 100vw; height: 100vh; position: absolute; }
@@ -39,7 +40,8 @@
 
         .card-amigo { background: #222; margin-bottom: 15px; border-radius: 15px; padding: 15px; border: 1px solid #333; position: relative; }
         .btn-rota-linha { width: 75%; height: 40px; background: var(--neon-blue); margin-top: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.85rem; font-weight: bold; cursor: pointer; float: left; }
-        .btn-video-call { width: 20%; height: 40px; background: var(--neon-green); margin-top: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #000; font-size: 1.2rem; cursor: pointer; float: right; }
+        .btn-video-call { width: 20%; height: 40px; background: var(--neon-green); margin-top: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #000; font-size: 1.2rem; cursor: pointer; float: right; transition: filter 0.1s; }
+        .btn-video-call:active { filter: brightness(1.5); }
 
         /* JANELA DE VÍDEO */
         #containerVideo {
@@ -72,7 +74,7 @@
         <div class="btn-configs" onclick="toggleConfigs()">⚙️</div>
         
         <div id="containerVideo">
-            <video id="localVideo" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+            <video id="localVideo" autoplay playsinline muted></video>
             <button class="btn-fechar-video" onclick="encerrarChamada()">ENCERRAR</button>
         </div>
 
@@ -117,7 +119,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, get, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue, get, remove, update, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBFO0CMhfRLqgCjoDk1zDD5VmIi9EtOLTY",
@@ -141,7 +143,10 @@
         let ultimaInstrucaoFalada = "";
         const marcadoresAmigos = {};
         let streamLocal = null;
-        let chamadorAtual = null;
+
+        function vibrar() {
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
 
         function falar(texto) {
             if (!texto || texto === ultimaInstrucaoFalada) return;
@@ -154,53 +159,47 @@
             document.getElementById('painelInstrucao').style.display = "block";
         }
 
-        // --- SISTEMA DE CHAMADA DE VÍDEO ATUALIZADO ---
         window.iniciarChamadaVideo = async function(idAmigo) {
+            vibrar();
             const meuId = localStorage.getItem('REALGPS_ID');
-            falar("Iniciando vídeo chamada para " + idAmigo);
-            await set(ref(db, `chamadas/${idAmigo}`), { de: meuId, status: 'tocando' });
+            falar("Chamando " + idAmigo);
+            await set(ref(db, `chamadas/${idAmigo}`), { de: meuId, status: 'tocando', timestamp: Date.now() });
             abrirCamera();
         };
 
-        // FUNÇÃO ABRIR CÂMERA ATUALIZADA PARA ANDROID
         async function abrirCamera() {
             try {
-                const constraints = { 
-                    video: { facingMode: "user" }, 
-                    audio: true 
-                };
-                
+                const constraints = { video: { facingMode: "user" }, audio: true };
                 streamLocal = await navigator.mediaDevices.getUserMedia(constraints);
                 const videoEl = document.getElementById('localVideo');
-                
                 videoEl.srcObject = streamLocal;
-                
-                videoEl.onloadedmetadata = () => {
-                    videoEl.play();
-                    document.getElementById('containerVideo').style.display = 'block';
-                    falar("Câmera ativada com sucesso");
-                };
-
+                document.getElementById('containerVideo').style.display = 'block';
+                falar("Câmera conectada");
             } catch (e) {
-                console.error("Erro na câmera:", e);
-                alert("Erro: " + e.name + ". Verifique se as permissões de Câmera e Microfone estão ativas nas configurações do seu celular.");
+                alert("Ative a Câmera e Microfone nas permissões do App.");
             }
         }
 
         window.encerrarChamada = function() {
+            vibrar();
             const meuId = localStorage.getItem('REALGPS_ID');
             remove(ref(db, `chamadas/${meuId}`));
-            if(streamLocal) streamLocal.getTracks().forEach(track => track.stop());
+            if(streamLocal) {
+                streamLocal.getTracks().forEach(track => track.stop());
+                streamLocal = null;
+            }
             document.getElementById('containerVideo').style.display = 'none';
             document.getElementById('alertaChamada').style.display = 'none';
         };
 
         window.aceitarChamada = function() {
+            vibrar();
             document.getElementById('alertaChamada').style.display = 'none';
             abrirCamera();
         };
 
         window.recusarChamada = function() {
+            vibrar();
             const meuId = localStorage.getItem('REALGPS_ID');
             remove(ref(db, `chamadas/${meuId}`));
             document.getElementById('alertaChamada').style.display = 'none';
@@ -210,17 +209,15 @@
             onValue(ref(db, `chamadas/${meuId}`), (snapshot) => {
                 const data = snapshot.val();
                 if(data && data.status === 'tocando') {
-                    chamadorAtual = data.de;
-                    document.getElementById('quemChama').innerText = "VÍDEO DE: " + chamadorAtual;
+                    document.getElementById('quemChama').innerText = "VÍDEO DE: " + data.de;
                     document.getElementById('alertaChamada').style.display = 'block';
-                    falar("Chamada de vídeo recebida de " + chamadorAtual);
+                    falar("Chamada de vídeo de " + data.de);
                 }
             });
         }
 
-        // --- RESTANTE DAS FUNÇÕES (LOGIN, ADMIN, RASTREAMENTO) ---
         window.tentarLogin = async function() {
-            const id = document.getElementById('idInput').value.trim();
+            const id = document.getElementById('idInput').value.trim().toUpperCase();
             const erro = document.getElementById('msgErro');
             if(!id) return;
 
@@ -246,11 +243,11 @@
         };
 
         window.abrirAdmin = function() {
-            const pass = prompt("DIGITE A CHAVE MESTRA ID GPS:");
+            const pass = prompt("DIGITE A CHAVE MESTRA:");
             if(pass === "netchaveapi") {
                 document.getElementById('painelAdmin').style.display = "flex";
                 carregarUsuariosAdmin();
-            } else { alert("CHAVE INCORRETA!"); }
+            }
         };
 
         window.fecharAdmin = () => document.getElementById('painelAdmin').style.display = "none";
@@ -264,8 +261,8 @@
                     Object.keys(dados).forEach(userId => {
                         const div = document.createElement('div');
                         div.className = "item-usuario";
-                        div.innerHTML = `<span style="color:white; font-weight:bold;">👤 ${userId}</span>
-                                         <button onclick="deletarUsuarioAdmin('${userId}')" style="background:var(--neon-red); color:white; border:none; padding:8px 15px; border-radius:8px; font-weight:bold;">EXCLUIR</button>`;
+                        div.innerHTML = `<span style="color:white">👤 ${userId}</span>
+                                         <button onclick="deletarUsuarioAdmin('${userId}')" style="background:var(--neon-red); color:white; border:none; padding:8px; border-radius:8px;">EXCLUIR</button>`;
                         lista.appendChild(div);
                     });
                 }
@@ -273,14 +270,17 @@
         }
 
         window.deletarUsuarioAdmin = async function(id) {
-            if(confirm(`EXCLUIR ${id}?`)) { await remove(ref(db, 'usuarios/' + id)); }
+            if(confirm(`EXCLUIR ${id}?`)) await remove(ref(db, 'usuarios/' + id));
         };
 
         function iniciarRastreamento(meuId) {
+            const userRef = ref(db, 'usuarios/' + meuId);
+            onDisconnect(userRef).update({ status: 'offline' });
+
             navigator.geolocation.watchPosition((p) => {
                 const { latitude, longitude } = p.coords;
                 minhaPos = { lat: latitude, lng: longitude };
-                update(ref(db, 'usuarios/' + meuId), { lat: latitude, lng: longitude, visto: Date.now() });
+                update(userRef, { lat: latitude, lng: longitude, visto: Date.now(), status: 'online' });
                 
                 if (!window.meuMarcador) {
                     window.meuMarcador = L.circleMarker([latitude, longitude], {radius: 12, fillColor: "#00ff88", color: "#fff", weight: 3}).addTo(map);
@@ -290,14 +290,18 @@
         }
 
         window.toggleConfigs = () => {
+            vibrar();
             const m = document.getElementById('menuConfigs');
             m.style.display = m.style.display === "flex" ? "none" : "flex";
         };
 
-        window.toggleAba = () => document.getElementById('abaAmigos').classList.toggle('aberta');
+        window.toggleAba = () => {
+            vibrar();
+            document.getElementById('abaAmigos').classList.toggle('aberta');
+        }
 
         window.adicionarAmigo = () => {
-            const id = document.getElementById('idAmigoInput').value.trim();
+            const id = document.getElementById('idAmigoInput').value.trim().toUpperCase();
             let amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]");
             if(id && !amigos.includes(id)) {
                 amigos.push(id);
@@ -314,9 +318,8 @@
             amigos.forEach(id => {
                 const card = document.createElement('div');
                 card.className = "card-amigo";
-                card.style.overflow = "hidden";
                 card.innerHTML = `
-                    <div style="color:white; font-weight:bold; display:flex; justify-content:space-between">👤 ${id} <span onclick="window.removerAmigo('${id}')" style="color:var(--neon-red); cursor:pointer">✖</span></div>
+                    <div style="color:white; font-weight:bold; display:flex; justify-content:space-between">👤 ${id} <span onclick="window.removerAmigo('${id}')" style="color:var(--neon-red)">✖</span></div>
                     <div class="btn-rota-linha" onclick="window.acionarRota('${id}')">INICIAR ROTA ➔</div>
                     <div class="btn-video-call" onclick="window.iniciarChamadaVideo('${id}')">📹</div>
                 `;
@@ -332,6 +335,7 @@
         }
 
         window.acionarRota = (id) => {
+            vibrar();
             get(ref(db, 'usuarios/' + id)).then(s => { 
                 if(s.val()) {
                     if (controleRota) map.removeControl(controleRota);
@@ -341,7 +345,7 @@
                         createMarker: () => null
                     }).addTo(map);
                     document.getElementById('btnLimpar').style.display = "block";
-                    toggleAba();
+                    document.getElementById('abaAmigos').classList.remove('aberta');
                 }
             });
         };
@@ -353,19 +357,21 @@
         };
 
         window.limparRota = () => {
+            vibrar();
             if (controleRota) map.removeControl(controleRota);
             document.getElementById('btnLimpar').style.display = "none";
         };
 
         window.onload = () => {
-            if(localStorage.getItem('REALGPS_ID')) {
-                document.getElementById('idInput').value = localStorage.getItem('REALGPS_ID');
+            const salvo = localStorage.getItem('REALGPS_ID');
+            if(salvo) {
+                document.getElementById('idInput').value = salvo;
                 tentarLogin();
             }
         };
 
         window.excluirContaLocal = function() {
-            if(confirm("Deseja sair e permitir um novo cadastro?")){
+            if(confirm("Sair do aplicativo?")){
                 localStorage.removeItem('REALGPS_ID');
                 window.location.reload();
             }

@@ -17,83 +17,46 @@
         #msgErro { color: var(--neon-red); font-weight: bold; margin: 15px; display: none; text-shadow: 0 0 10px red; text-align: center; width: 85%; }
         .btn-entrar { width: 75px; height: 75px; background: var(--neon-blue); border: 4px solid #fff; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 35px; margin-top: 15px; box-shadow: 0 0 20px var(--neon-blue); }
 
-        /* INTERFACE PRINCIPAL */
+        /* INTERFACE */
         #interfacePrincipal { display: none; width: 100vw; height: 100vh; position: absolute; }
-        #map { width: 100%; height: 100%; z-index: 1; }
+        #map { width: 100%; height: 100%; }
 
-        /* CAMERA PIP */
+        /* CÂMERA PIP */
         #containerCamera { position: fixed; top: 80px; right: 15px; width: 120px; z-index: 2005; display: none; }
         .video-box { width: 120px; height: 160px; border: 2px solid var(--neon-green); border-radius: 12px; overflow: hidden; background: #000; position: relative; }
         #videoRemote { width: 100%; height: 100%; object-fit: cover; }
         #videoLocal { position: absolute; bottom: 5px; right: 5px; width: 40px; height: 50px; border: 1px solid #fff; z-index: 2006; object-fit: cover; background: #222; }
 
-        /* CHAMADA */
+        /* NOTIFICAÇÃO CHAMADA */
         #notificacaoChamada { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000; display: none; flex-direction: column; align-items: center; justify-content: center; color: white; }
         .btn-atender { background: var(--neon-green); color: #000; padding: 20px; border-radius: 50%; border: none; font-size: 30px; margin: 20px; }
         .btn-recusar { background: var(--neon-red); color: #fff; padding: 20px; border-radius: 50%; border: none; font-size: 30px; margin: 20px; }
 
-        /* PAINEL INSTRUÇÃO E ROTA */
-        #painelInstrucao { position: absolute; top: 75px; left: 15px; right: 15px; background: rgba(0,0,0,0.95); color: #fff; padding: 15px; border-radius: 15px; border-left: 6px solid var(--neon-blue); z-index: 1001; font-weight: bold; display: none; }
-        .btn-limpar-rota { position: absolute; bottom: 420px; right: 20px; z-index: 1001; background: var(--neon-red); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; display: none; }
-        
-        /* CORREÇÃO: ABA AMIGOS (LISTA AZUL VERSÃO ANTIGA) */
-        .aba-amigos { 
-            position: fixed; 
-            bottom: -345px; 
-            left: 0; 
-            width: 100%; 
-            height: 390px; 
-            background: linear-gradient(180deg, #000c3a 0%, #000 100%); 
-            z-index: 2000; 
-            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
-            border-radius: 30px 30px 0 0; 
-            padding: 20px; 
-            border-top: 3px solid var(--neon-blue);
-            box-shadow: 0 -10px 25px rgba(0, 30, 255, 0.3);
-        }
-        .aba-amigos.aberta { bottom: 0; }
-        .gatilho-aba { 
-            position: absolute; 
-            top: -45px; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            background: var(--neon-blue); 
-            color: #fff; 
-            padding: 12px 45px; 
-            border-radius: 20px 20px 0 0; 
-            font-weight: bold; 
-            box-shadow: 0 -5px 15px var(--neon-blue);
-            border: 1px solid #555;
-            border-bottom: none;
-        }
-
-        /* ESTILO DOS CARDS NA LISTA AZUL */
-        .card-amigo { 
-            background: rgba(255, 255, 255, 0.05); 
-            margin-bottom: 12px; 
-            border-radius: 15px; 
-            padding: 15px; 
-            border: 1px solid rgba(0, 30, 255, 0.4); 
-        }
-        .btn-rota-linha { width: 75%; height: 45px; background: var(--neon-blue); border-radius: 12px 0 0 12px; color: #fff; font-weight: bold; border: none; cursor: pointer; }
-        .btn-ligar-amigo { width: 25%; height: 45px; background: var(--neon-green); border-radius: 0 12px 12px 0; color: #000; font-size: 1.2rem; border: none; cursor: pointer; }
-
-        /* SCROLL AZUL CUSTOMIZADO */
-        #listaCorpo::-webkit-scrollbar { width: 6px; }
-        #listaCorpo::-webkit-scrollbar-track { background: #000; }
-        #listaCorpo::-webkit-scrollbar-thumb { background: var(--neon-blue); border-radius: 10px; }
-
+        /* CONFIGURAÇÕES E ADMIN */
         .btn-configs { position: absolute; top: 15px; right: 15px; z-index: 1005; background: rgba(0,0,0,0.8); color: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid var(--neon-blue); font-size: 24px; }
         #menuConfigs, #painelAdmin { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 3000; display: none; flex-direction: column; align-items: center; justify-content: center; color: white; }
         .lista-admin { width: 90%; max-width: 320px; height: 50%; overflow-y: auto; background: #111; margin: 20px 0; border: 1px solid #333; padding: 10px; }
         .item-usuario { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #222; align-items: center; }
+
+        /* PAINEL GPS */
+        #painelInstrucao { position: absolute; top: 75px; left: 15px; right: 15px; background: rgba(0,0,0,0.95); color: #fff; padding: 15px; border-radius: 15px; border-left: 6px solid var(--neon-blue); z-index: 1001; font-weight: bold; display: none; }
+        .btn-limpar-rota { position: absolute; bottom: 420px; right: 20px; z-index: 1001; background: var(--neon-red); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; display: none; }
+
+        /* ABA AMIGOS */
+        .aba-amigos { position: fixed; bottom: -340px; left: 0; width: 100%; height: 380px; background: #111; z-index: 2000; transition: 0.4s ease; border-radius: 30px 30px 0 0; padding: 20px; border-top: 2px solid var(--neon-blue); }
+        .aba-amigos.aberta { bottom: 0; }
+        .gatilho-aba { position: absolute; top: -45px; left: 50%; transform: translateX(-50%); background: var(--neon-blue); color: #fff; padding: 12px 35px; border-radius: 20px 20px 0 0; font-weight: bold; }
+        .card-amigo { background: #222; margin-bottom: 15px; border-radius: 15px; padding: 15px; border: 1px solid #333; }
+        .btn-rota-linha { width: 75%; height: 40px; background: var(--neon-blue); border-radius: 10px 0 0 10px; color: #fff; font-weight: bold; border: none; cursor: pointer; }
+        .btn-ligar-amigo { width: 25%; height: 40px; background: var(--neon-green); border-radius: 0 10px 10px 0; color: #000; font-size: 1.2rem; border: none; cursor: pointer; }
+
         .leaflet-routing-container { display: none !important; }
     </style>
 </head>
 <body>
 
     <div id="notificacaoChamada">
-        <h2 id="textoChamada">LIGANDO...</h2>
+        <h2 id="textoChamada">ALGUÉM LIGANDO...</h2>
         <div style="display:flex;">
             <button class="btn-atender" onclick="atenderLigacao()">📞</button>
             <button class="btn-recusar" onclick="finalizarChamada()">✖</button>
@@ -121,13 +84,13 @@
         <div id="menuConfigs">
             <h2>CONFIGURAÇÕES</h2>
             <p style="margin-top: 20px; color: #888;">Logado como: <b id="meuIdDisplay" style="color:var(--neon-green)"></b></p>
-            <button onclick="abrirAdmin()" style="background:var(--neon-blue); color:white; padding:15px; border-radius:10px; margin-top:20px; border:none; width:250px;">🆔 PAINEL ADMIN</button>
-            <button onclick="excluirConta()" style="background:var(--neon-red); color:white; padding:15px; border-radius:10px; margin-top:10px; border:none; width:250px;">🔥 APAGAR MEU REGISTRO</button>
+            <button onclick="abrirAdmin()" style="background:var(--neon-blue); color:white; padding:15px; border-radius:10px; margin-top:20px; border:none; width:250px; font-weight:bold;">🆔 PAINEL ADMIN (MASTER)</button>
+            <button onclick="excluirConta()" style="background:var(--neon-red); color:white; padding:15px; border-radius:10px; margin-top:10px; border:none; width:250px; font-weight:bold;">🔥 APAGAR MEU REGISTRO</button>
             <button onclick="toggleConfigs()" style="margin-top:40px; color:white; background:none; border:none; text-decoration:underline;">VOLTAR</button>
         </div>
 
         <div id="painelAdmin">
-            <h2 style="color:var(--neon-blue)">GERENCIAR BANCO DE DADOS</h2>
+            <h2 style="color:var(--neon-blue)">GERENCIAR BANCO DE DATA</h2>
             <div class="lista-admin" id="listaAdmin"></div>
             <button onclick="document.getElementById('painelAdmin').style.display='none'" style="color:white; background:none; border:none; margin-top:20px;">FECHAR</button>
         </div>
@@ -138,16 +101,17 @@
         
         <div id="abaAmigos" class="aba-amigos">
             <div class="gatilho-aba" onclick="toggleAba()">AMIGOS</div>
-            <div style="display:flex; gap:10px; margin-bottom:15px; margin-top: 10px;">
-                <input type="text" id="idAmigoInput" style="flex:1; padding:14px; border-radius:12px; border:1px solid var(--neon-blue); background:#000; color:#fff;" placeholder="NOME DO AMIGO">
-                <button onclick="adicionarAmigo()" style="padding:12px 20px; background:var(--neon-green); border:none; border-radius:12px; font-weight:bold; color:#000;">ADD</button>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <input type="text" id="idAmigoInput" style="flex:1; padding:12px; border-radius:12px; border:none; background:#333; color:#fff;" placeholder="NOME DO AMIGO">
+                <button onclick="adicionarAmigo()" style="padding:12px; background:var(--neon-green); border:none; border-radius:12px; font-weight:bold;">ADD</button>
             </div>
-            <div id="listaCorpo" style="height:250px; overflow-y:auto; padding-right: 5px;"></div>
+            <div id="listaCorpo" style="height:230px; overflow-y:auto;"></div>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onValue, get, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -164,6 +128,8 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+
+        // CONFIGURAÇÕES DO MAPA
         var map = L.map('map', { zoomControl: false }).setView([-15.79, -47.88], 4);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
@@ -176,6 +142,7 @@
         let pc = null;
         const marcadoresAmigos = {};
 
+        // --- SISTEMA DE VOZ E ENDEREÇO ---
         function falar(texto) {
             if (!texto || texto === ultimaInstrucaoFalada) return;
             window.speechSynthesis.cancel();
@@ -195,16 +162,18 @@
             } catch (e) { return "Localização do amigo"; }
         }
 
+        // --- ROTA FUNCIONAL ---
         window.gerarRotaPara = async (latDest, lngDest, nomeAmigo) => {
             if (!minhaPos) return;
             if (controleRota) map.removeControl(controleRota);
+            
             const rua = await getEnderecoAmigo(latDest, lngDest);
-            falar(`Iniciando rota para ${nomeAmigo}. Ele está em ${rua}.`);
+            falar(`Rota para ${nomeAmigo}. Destino em ${rua}.`);
             
             controleRota = L.Routing.control({
                 waypoints: [L.latLng(minhaPos.lat, minhaPos.lng), L.latLng(latDest, lngDest)],
                 lineOptions: { styles: [{ color: '#001eff', weight: 8, opacity: 0.9 }] },
-                createMarker: () => null, 
+                createMarker: () => null,
                 addWaypoints: false
             }).on('routesfound', e => { 
                 listaInstrucoes = e.routes[0].instructions; 
@@ -214,11 +183,39 @@
             if(document.getElementById('abaAmigos').classList.contains('aberta')) toggleAba();
         };
 
-        function iniciarRastreamento(id) {
+        // --- LOGIN E RASTREAMENTO ---
+        window.tentarLogin = async function() {
+            const id = document.getElementById('idInput').value.trim();
+            if(!id) return;
+
+            const snap = await get(ref(db, 'usuarios/' + id));
+            const idLocal = localStorage.getItem('REALGPS_ID');
+
+            if (snap.exists() && idLocal !== id) {
+                document.getElementById('msgErro').style.display = "block";
+                falar("Acesso negado.");
+                return;
+            }
+
+            meuId = id;
+            localStorage.setItem('REALGPS_ID', id);
+            document.getElementById('meuIdDisplay').innerText = id;
+            document.getElementById('telaLogin').style.display = "none";
+            document.getElementById('interfacePrincipal').style.display = "block";
+            
+            falar("Real G P S Ativo.");
+            map.invalidateSize();
+            iniciarRastreamento();
+            monitorarAmigos();
+            monitorarChamadas();
+        };
+
+        function iniciarRastreamento() {
             navigator.geolocation.watchPosition((p) => {
                 const { latitude, longitude } = p.coords;
                 minhaPos = { lat: latitude, lng: longitude };
-                
+
+                // Lógica de Voz Passo-a-Passo
                 if (listaInstrucoes.length > 0 && controleRota && controleRota._router.route) {
                     const rotaCoords = controleRota._router.route[0].coordinates;
                     listaInstrucoes.forEach(inst => {
@@ -227,7 +224,8 @@
                     });
                 }
 
-                set(ref(db, 'usuarios/' + id), { lat: latitude, lng: longitude, visto: Date.now() });
+                set(ref(db, 'usuarios/' + meuId), { lat: latitude, lng: longitude, visto: Date.now() });
+
                 if (!window.meuMarcador) {
                     window.meuMarcador = L.circleMarker([latitude, longitude], {radius: 12, fillColor: "#00ff88", color: "#fff", weight: 3}).addTo(map);
                     map.setView([latitude, longitude], 17);
@@ -238,106 +236,13 @@
             }, null, { enableHighAccuracy: true });
         }
 
-        window.tentarLogin = async function() {
-            const id = document.getElementById('idInput').value.trim();
-            if(!id) return;
-
-            const snap = await get(ref(db, 'usuarios/' + id));
-            const idLocal = localStorage.getItem('REALGPS_ID');
-
-            if (snap.exists() && idLocal !== id) {
-                document.getElementById('msgErro').style.display = "block";
-                falar("Acesso negado. Nome protegido.");
-                return;
-            }
-
-            meuId = id;
-            localStorage.setItem('REALGPS_ID', id);
-            document.getElementById('meuIdDisplay').innerText = id;
-            document.getElementById('telaLogin').style.display = "none";
-            document.getElementById('interfacePrincipal').style.display = "block";
-            
-            falar("Acesso confirmado. Real G P S pronto.");
-            map.invalidateSize();
-            iniciarRastreamento(id);
-            monitorarAmigos();
-            monitorarChamadas();
-        };
-
-        window.abrirAdmin = () => {
-            if(prompt("SENHA MESTRE:") === "netchaveapi") {
-                document.getElementById('painelAdmin').style.display = "flex";
-                onValue(ref(db, 'usuarios'), snap => {
-                    const lista = document.getElementById('listaAdmin');
-                    lista.innerHTML = "";
-                    if(snap.val()) Object.keys(snap.val()).forEach(id => {
-                        const div = document.createElement('div');
-                        div.className = "item-usuario";
-                        div.innerHTML = `<span>${id}</span> <button onclick="deletarID('${id}')" style="color:red; background:none; border:1px solid red; padding:5px; border-radius:5px;">EXCLUIR</button>`;
-                        lista.appendChild(div);
-                    });
-                });
-            }
-        };
-
-        window.deletarID = (id) => { if(confirm("Excluir "+id+"?")) remove(ref(db, `usuarios/${id}`)); };
-
-        window.acionarRota = (id) => {
-            get(ref(db, 'usuarios/' + id)).then(s => { 
-                if(s.val()) gerarRotaPara(s.val().lat, s.val().lng, id); 
-            });
-        };
-
-        window.monitorarAmigos = () => {
-            const amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]");
-            const corpo = document.getElementById('listaCorpo');
-            corpo.innerHTML = "";
-            amigos.forEach(id => {
-                const card = document.createElement('div');
-                card.className = "card-amigo";
-                card.innerHTML = `<div style="color:white; font-weight:bold; display:flex; justify-content:space-between; margin-bottom:10px;">👤 ${id} <span onclick="removerAmigo('${id}')" style="color:var(--neon-red); cursor:pointer">✖</span></div>
-                                  <div style="display:flex;">
-                                    <button class="btn-rota-linha" onclick="acionarRota('${id}')">ROTA ➔</button>
-                                    <button class="btn-ligar-amigo" onclick="ligarParaAmigo('${id}')">📞</button>
-                                  </div>`;
-                corpo.appendChild(card);
-                onValue(ref(db, 'usuarios/' + id), (s) => {
-                    const d = s.val();
-                    if (d && d.lat) {
-                        if (!marcadoresAmigos[id]) marcadoresAmigos[id] = L.circleMarker([d.lat, d.lng], {radius: 9, fillColor: "#001eff", color: "#fff", weight: 2}).addTo(map);
-                        else marcadoresAmigos[id].setLatLng([d.lat, d.lng]);
-                    }
-                });
-            });
-        };
-
-        window.adicionarAmigo = () => {
-            const id = document.getElementById('idAmigoInput').value.trim();
-            let lista = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]");
-            if(id && !lista.includes(id)) { lista.push(id); localStorage.setItem('LISTA_AMIGOS', JSON.stringify(lista)); monitorarAmigos(); }
-            document.getElementById('idAmigoInput').value = "";
-        };
-
-        window.removerAmigo = (id) => {
-            let lista = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]").filter(a => a !== id);
-            localStorage.setItem('LISTA_AMIGOS', JSON.stringify(lista));
-            if(marcadoresAmigos[id]) map.removeLayer(marcadoresAmigos[id]);
-            monitorarAmigos();
-        };
-
-        window.limparRota = () => {
-            if (controleRota) map.removeControl(controleRota);
-            document.getElementById('btnLimpar').style.display = "none";
-            document.getElementById('painelInstrucao').style.display = "none";
-            listaInstrucoes = [];
-            falar("Rota finalizada.");
-        };
-
-        // --- WEBRTC ---
+        // --- CHAMADAS E CÂMERA ---
         async function iniciarMidia() {
-            localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
-            document.getElementById('videoLocal').srcObject = localStream;
-            document.getElementById('containerCamera').style.display = "block";
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+                document.getElementById('videoLocal').srcObject = localStream;
+                document.getElementById('containerCamera').style.display = "block";
+            } catch(e) { alert("Ative a câmera para ligar."); }
         }
 
         window.ligarParaAmigo = async (idAmigo) => {
@@ -384,17 +289,80 @@
             });
         }
 
-        window.excluirConta = async function() {
-            if(confirm("Apagar seu registro?")){
-                await remove(ref(db, 'usuarios/' + meuId));
-                localStorage.clear();
-                window.location.reload();
+        // --- AMIGOS E ADMIN ---
+        window.monitorarAmigos = () => {
+            const amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]");
+            const corpo = document.getElementById('listaCorpo');
+            corpo.innerHTML = "";
+            amigos.forEach(id => {
+                const card = document.createElement('div');
+                card.className = "card-amigo";
+                card.innerHTML = `<div style="color:white; font-weight:bold; display:flex; justify-content:space-between">👤 ${id} <span onclick="window.removerAmigo('${id}')" style="color:red; cursor:pointer">✖</span></div>
+                                  <div style="display:flex; margin-top:10px;">
+                                    <button class="btn-rota-linha" onclick="window.acionarRota('${id}')">INICIAR ROTA ➔</button>
+                                    <button class="btn-ligar-amigo" onclick="window.ligarParaAmigo('${id}')">📞</button>
+                                  </div>`;
+                corpo.appendChild(card);
+                onValue(ref(db, 'usuarios/' + id), (s) => {
+                    const d = s.val();
+                    if (d && d.lat) {
+                        if (!marcadoresAmigos[id]) marcadoresAmigos[id] = L.circleMarker([d.lat, d.lng], {radius: 9, fillColor: "#001eff", color: "#fff", weight: 2}).addTo(map);
+                        else marcadoresAmigos[id].setLatLng([d.lat, d.lng]);
+                    }
+                });
+            });
+        };
+
+        window.acionarRota = (id) => {
+            get(ref(db, 'usuarios/' + id)).then(s => { if(s.val()) gerarRotaPara(s.val().lat, s.val().lng, id); });
+        };
+
+        window.adicionarAmigo = () => {
+            const id = document.getElementById('idAmigoInput').value.trim();
+            let lista = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]");
+            if(id && !lista.includes(id)) { lista.push(id); localStorage.setItem('LISTA_AMIGOS', JSON.stringify(lista)); monitorarAmigos(); }
+        };
+
+        window.removerAmigo = (id) => {
+            let lista = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]").filter(a => a !== id);
+            localStorage.setItem('LISTA_AMIGOS', JSON.stringify(lista));
+            if(marcadoresAmigos[id]) map.removeLayer(marcadoresAmigos[id]);
+            monitorarAmigos();
+        };
+
+        window.limparRota = () => {
+            if (controleRota) map.removeControl(controleRota);
+            document.getElementById('btnLimpar').style.display = "none";
+            document.getElementById('painelInstrucao').style.display = "none";
+            listaInstrucoes = [];
+            falar("Rota finalizada.");
+        };
+
+        window.abrirAdmin = () => {
+            if(prompt("SENHA MESTRE:") === "netchaveapi") {
+                document.getElementById('painelAdmin').style.display = "flex";
+                onValue(ref(db, 'usuarios'), snap => {
+                    const lista = document.getElementById('listaAdmin');
+                    lista.innerHTML = "";
+                    if(snap.val()) Object.keys(snap.val()).forEach(id => {
+                        const div = document.createElement('div');
+                        div.className = "item-usuario";
+                        div.innerHTML = `<span>${id}</span> <button onclick="window.deletarID('${id}')" style="color:red; background:none; border:1px solid red; padding:5px; border-radius:5px;">EXCLUIR</button>`;
+                        lista.appendChild(div);
+                    });
+                });
             }
         };
 
+        window.deletarID = (id) => { if(confirm("Apagar "+id+" permanentemente?")) remove(ref(db, `usuarios/${id}`)); };
+        window.excluirConta = async function() { if(confirm("Apagar seu registro e liberar o nome?")){ await remove(ref(db, 'usuarios/' + meuId)); localStorage.clear(); window.location.reload(); } };
         window.toggleAba = () => document.getElementById('abaAmigos').classList.toggle('aberta');
         window.toggleConfigs = () => { const m = document.getElementById('menuConfigs'); m.style.display = m.style.display === "flex" ? "none" : "flex"; };
-        window.onload = () => { if(localStorage.getItem('REALGPS_ID')) { document.getElementById('idInput').value = localStorage.getItem('REALGPS_ID'); tentarLogin(); } };
+        
+        window.onload = () => {
+            const saved = localStorage.getItem('REALGPS_ID');
+            if(saved) { document.getElementById('idInput').value = saved; tentarLogin(); }
+        };
     </script>
 </body>
 </html>

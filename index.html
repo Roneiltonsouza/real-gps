@@ -29,10 +29,15 @@
 
         /* INTERFACE */
         #interfacePrincipal { display: none; width: 100vw; height: 100vh; position: absolute; }
-        #map { width: 100%; height: 100%; background: transparent; transition: opacity 0.3s; }
+        #map { width: 100%; height: 100%; z-index: 1; }
         
-        /* VIDEO CHAMADA (FUNDO DO GPS) */
-        #videoCamera { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; display: none; background: #222; }
+        /* JANELA PEQUENA DE VÍDEO CHAMADA */
+        #containerCamera {
+            position: fixed; top: 80px; right: 15px; width: 120px; height: 160px;
+            border: 2px solid var(--neon-green); border-radius: 12px; overflow: hidden;
+            z-index: 2000; display: none; background: #000; box-shadow: 0 0 15px rgba(0,255,136,0.5);
+        }
+        #videoCamera { width: 100%; height: 100%; object-fit: cover; }
 
         .btn-configs {
             position: absolute; top: 15px; right: 15px; z-index: 1005;
@@ -84,12 +89,13 @@
         .btn-ligacao { width: 20%; height: 40px; background: var(--neon-green); margin-top: 10px; margin-left: 5%; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; }
 
         .leaflet-routing-container { display: none !important; }
-        .leaflet-tile-pane { transition: opacity 0.5s; }
     </style>
 </head>
 <body>
 
-    <video id="videoCamera" autoplay playsinline></video>
+    <div id="containerCamera">
+        <video id="videoCamera" autoplay playsinline></video>
+    </div>
 
     <div id="telaLogin">
         <div class="logo-app"></div>
@@ -160,83 +166,43 @@
         let minhaPos = null;
         let streamCamera = null;
         let controleRota = null;
-        let listaInstrucoes = [];
-        let ultimaInstrucaoFalada = "";
         const marcadoresAmigos = {};
 
         function falar(texto) {
-            if (!texto || texto === ultimaInstrucaoFalada) return;
             window.speechSynthesis.cancel();
-            const msg = new SpeechSynthesisUtterance(texto.replace(/[0-9]/g, '').replace(/[\.,-]/g, ' '));
+            const msg = new SpeechSynthesisUtterance(texto);
             msg.lang = 'pt-BR';
             window.speechSynthesis.speak(msg);
-            ultimaInstrucaoFalada = texto;
             document.getElementById('painelInstrucao').innerText = texto;
             document.getElementById('painelInstrucao').style.display = "block";
         }
 
-        // --- SISTEMA DE CÂMERA / VÍDEO CHAMADA ---
+        // --- SISTEMA DE CÂMERA EM JANELA PEQUENA ---
         window.toggleCamera = async function(manual = false) {
+            const container = document.getElementById('containerCamera');
             const video = document.getElementById('videoCamera');
-            const mapEl = document.querySelector('.leaflet-tile-pane');
             
             if (!streamCamera) {
                 try {
                     streamCamera = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: true });
                     video.srcObject = streamCamera;
-                    video.style.display = "block";
-                    mapEl.style.opacity = "0.4"; // Torna o mapa transparente para ver o vídeo
-                    if(manual) falar("Vídeo chamada iniciada.");
-                } catch (e) { console.error("Erro câmera:", e); }
+                    container.style.display = "block";
+                } catch (e) { console.error(e); }
             } else if(manual) {
                 streamCamera.getTracks().forEach(t => t.stop());
                 streamCamera = null;
-                video.style.display = "none";
-                mapEl.style.opacity = "1";
-                falar("Vídeo chamada encerrada.");
+                container.style.display = "none";
             }
         };
 
-        // --- ADMIN / EXCLUIR ID ---
-        window.abrirAdmin = function() {
-            const senha = prompt("SENHA MESTRA:");
-            if (senha === "netchaveapi") {
-                document.getElementById('painelAdmin').style.display = "flex";
-                carregarListaAdmin();
-            }
-        };
-
-        function carregarListaAdmin() {
-            const lista = document.getElementById('listaAdmin');
-            onValue(ref(db, 'usuarios'), (snap) => {
-                lista.innerHTML = "";
-                const users = snap.val();
-                if (users) {
-                    Object.keys(users).forEach(id => {
-                        const item = document.createElement('div');
-                        item.className = "item-usuario";
-                        item.innerHTML = `<span>👤 ${id}</span> <button onclick="deletarID('${id}')" style="background:red; color:white; border:none; padding:8px; border-radius:5px;">EXCLUIR</button>`;
-                        lista.appendChild(item);
-                    });
-                }
-            });
-        }
-
-        window.deletarID = async (id) => {
-            if (confirm(`Remover ${id}?`)) await remove(ref(db, 'usuarios/' + id));
-        };
-
-        window.fecharAdmin = () => document.getElementById('painelAdmin').style.display = "none";
-
-        // --- LOGIN E RASTREAMENTO ---
+        // --- LOGIN E ACESSOS ---
         window.tentarLogin = async function() {
             const id = document.getElementById('idInput').value.trim();
-            const erro = document.getElementById('msgErro');
             if(!id) return;
             const snap = await get(ref(db, 'usuarios/' + id));
             const idLocal = localStorage.getItem('REALGPS_ID');
             if (snap.exists() && idLocal !== id) {
-                erro.style.display = "block";
+                document.getElementById('msgErro').style.display = "block";
                 return;
             }
             localStorage.setItem('REALGPS_ID', id);
@@ -246,14 +212,6 @@
             map.invalidateSize();
             iniciarRastreamento(id);
             monitorarAmigos();
-        };
-
-        window.excluirConta = async function() {
-            if(confirm("Apagar seu cadastro?")){
-                await remove(ref(db, 'usuarios/' + localStorage.getItem('REALGPS_ID')));
-                localStorage.clear();
-                window.location.reload();
-            }
         };
 
         function iniciarRastreamento(meuId) {
@@ -271,19 +229,7 @@
             }, null, { enableHighAccuracy: true });
         }
 
-        window.toggleAba = () => document.getElementById('abaAmigos').classList.toggle('aberta');
-
-        window.adicionarAmigo = () => {
-            const id = document.getElementById('idAmigoInput').value.trim();
-            let amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]");
-            if(id && !amigos.includes(id)) {
-                amigos.push(id);
-                localStorage.setItem('LISTA_AMIGOS', JSON.stringify(amigos));
-                monitorarAmigos();
-                document.getElementById('idAmigoInput').value = "";
-            }
-        };
-
+        // --- GERENCIAR AMIGOS E ROTA ---
         function monitorarAmigos() {
             const amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]");
             const corpo = document.getElementById('listaCorpo');
@@ -292,10 +238,8 @@
                 const card = document.createElement('div');
                 card.className = "card-amigo";
                 card.innerHTML = `
-                    <div style="color:white; font-weight:bold; display:flex; justify-content:space-between">
-                        👤 ${id} <span onclick="window.removerAmigo('${id}')" style="color:var(--neon-red); cursor:pointer">✖</span>
-                    </div>
-                    <div style="display:flex; align-items:center;">
+                    <div style="color:white; font-weight:bold; display:flex; justify-content:space-between">👤 ${id} <span onclick="window.removerAmigo('${id}')" style="color:var(--neon-red); cursor:pointer">✖</span></div>
+                    <div style="display:flex;">
                         <div class="btn-rota-linha" onclick="window.acionarRota('${id}')">INICIAR ROTA ➔</div>
                         <div class="btn-ligacao" onclick="window.iniciarChamada('${id}')">📞</div>
                     </div>`;
@@ -311,8 +255,8 @@
         }
 
         window.iniciarChamada = (id) => {
-            falar("Chamando " + id);
-            toggleCamera(false); // Abre a câmera automaticamente
+            falar("Chamada de vídeo com " + id);
+            toggleCamera(false);
         };
 
         window.acionarRota = (id) => {
@@ -326,37 +270,52 @@
                         lineOptions: { styles: [{ color: '#001eff', weight: 8 }] }
                     }).addTo(map);
                     document.getElementById('btnLimpar').style.display = "block";
-                    toggleCamera(false); // ATIVA CÂMERA AUTOMATICAMENTE NA ROTA
+                    toggleCamera(false); // ABRE A JANELA PEQUENA DA CAMERA
                     toggleAba();
-                    falar("Rota e câmera ativadas.");
+                    falar("Abrindo rota e câmera.");
                 }
             });
-        };
-
-        window.removerAmigo = (id) => {
-            let amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]").filter(a => a !== id);
-            localStorage.setItem('LISTA_AMIGOS', JSON.stringify(amigos));
-            monitorarAmigos();
         };
 
         window.limparRota = () => {
             if (controleRota) map.removeControl(controleRota);
             document.getElementById('btnLimpar').style.display = "none";
             document.getElementById('painelInstrucao').style.display = "none";
-            falar("Rota encerrada.");
+            document.getElementById('containerCamera').style.display = "none";
+            if(streamCamera) { streamCamera.getTracks().forEach(t => t.stop()); streamCamera = null; }
         };
 
-        window.toggleConfigs = () => {
-            const m = document.getElementById('menuConfigs');
-            m.style.display = m.style.display === "flex" ? "none" : "flex";
-        };
-
-        window.onload = () => {
-            if(localStorage.getItem('REALGPS_ID')) {
-                document.getElementById('idInput').value = localStorage.getItem('REALGPS_ID');
-                tentarLogin();
+        // --- CONFIGURAÇÕES ORIGINAIS ---
+        window.abrirAdmin = function() {
+            if (prompt("SENHA:") === "netchaveapi") {
+                document.getElementById('painelAdmin').style.display = "flex";
+                const lista = document.getElementById('listaAdmin');
+                onValue(ref(db, 'usuarios'), (snap) => {
+                    lista.innerHTML = "";
+                    const users = snap.val();
+                    if (users) Object.keys(users).forEach(id => {
+                        const item = document.createElement('div');
+                        item.className = "item-usuario";
+                        item.innerHTML = `<span>👤 ${id}</span> <button onclick="deletarID('${id}')" style="background:red; color:white; border:none; padding:5px; border-radius:5px;">X</button>`;
+                        lista.appendChild(item);
+                    });
+                });
             }
         };
+        window.deletarID = async (id) => { if (confirm(`Remover ${id}?`)) await remove(ref(db, 'usuarios/' + id)); };
+        window.fecharAdmin = () => document.getElementById('painelAdmin').style.display = "none";
+        window.toggleAba = () => document.getElementById('abaAmigos').classList.toggle('aberta');
+        window.toggleConfigs = () => { const m = document.getElementById('menuConfigs'); m.style.display = m.style.display === "flex" ? "none" : "flex"; };
+        window.adicionarAmigo = () => {
+            const id = document.getElementById('idAmigoInput').value.trim();
+            let amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]");
+            if(id && !amigos.includes(id)) { amigos.push(id); localStorage.setItem('LISTA_AMIGOS', JSON.stringify(amigos)); monitorarAmigos(); }
+        };
+        window.removerAmigo = (id) => {
+            let amigos = JSON.parse(localStorage.getItem('LISTA_AMIGOS') || "[]").filter(a => a !== id);
+            localStorage.setItem('LISTA_AMIGOS', JSON.stringify(amigos)); monitorarAmigos();
+        };
+        window.onload = () => { if(localStorage.getItem('REALGPS_ID')) { document.getElementById('idInput').value = localStorage.getItem('REALGPS_ID'); tentarLogin(); } };
     </script>
 </body>
 </html>
